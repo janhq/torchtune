@@ -74,6 +74,25 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="full_finetune_fsdp2",
+        file_path="full_finetune_fsdp2.py",
+        configs=[
+            Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
+            Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
+            Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),
+            Config(name="llama3_1_s/8B_full", file_path="jan-llama3-1-s/8B_full.yaml"),
+            Config(name="llama3_1/8B_full", file_path="llama3_1/8B_full.yaml"),
+            Config(name="llama3/8B_full", file_path="jan-llama3-s/8B_full.yaml"),
+            Config(name="llama3/70B_full", file_path="llama3/70B_full.yaml"),
+            Config(name="llama3_1/70B_full", file_path="llama3_1/70B_full.yaml"),
+            Config(name="mistral/7B_full", file_path="mistral/7B_full.yaml"),
+            Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
+            Config(name="gemma/7B_full", file_path="gemma/7B_full.yaml"),
+            Config(name="phi3/mini_full", file_path="phi3/mini_full.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="lora_finetune_single_device",
         file_path="lora_finetune_single_device.py",
         configs=[

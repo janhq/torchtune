@@ -41,7 +41,7 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullFinetuneRecipeDistributed(FTRecipeInterface):
+class FullFinetuneRecipeFSDP2(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
     distributed training and can be run on a single node (1 to 8 GPUs).
@@ -545,9 +545,9 @@ def recipe_main(cfg: DictConfig) -> None:
         # speed up when benchmarking fused AdamW on CPU
         utils.set_torch_num_threads()
 
-    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
+    config.log_config(recipe_name="FullFinetuneRecipeFSDP2", cfg=cfg)
 
-    recipe = FullFinetuneRecipeDistributed(cfg=cfg)
+    recipe = FullFinetuneRecipeFSDP2(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
