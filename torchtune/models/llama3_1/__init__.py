@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from ._component_builders import llama3_1, lora_llama3_1, llama3_1_s_8b
+from ._component_builders import llama3_1, lora_llama3_1
 
 from ._model_builders import (  # noqa
     llama3_1_70b,

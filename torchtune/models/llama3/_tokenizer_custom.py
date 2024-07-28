@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Tuple
-
+from typing_extensions import override
 from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, CustomTikTokenTokenizer
 from torchtune.models.llama3._tokenizer import (
@@ -18,6 +18,7 @@ SPECIAL_SOUND_TOKENS = {
 LLAMA3_S_SPECIAL_TOKENS = {**LLAMA3_SPECIAL_TOKENS, **SPECIAL_SOUND_TOKENS}
 
 class Llama3STokenizer(Llama3Tokenizer):
+    @override
     def __init__(
         self,
         path: str,
@@ -47,7 +48,7 @@ class Llama3STokenizer(Llama3Tokenizer):
 
     def encode_sound_tokens(self, sound_text: str) -> List[int]:
         return self.tt_model.encode_sound_tokens(sound_text)
-
+    @override
     def _tokenize_body(self, message: Message) -> List[int]:
         tokenized_body = []
         for item in message.content:

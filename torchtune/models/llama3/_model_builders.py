@@ -10,6 +10,7 @@ from torchtune.models.llama3._component_builders import llama3, lora_llama3, lla
 
 from torchtune.modules import TransformerDecoder
 from torchtune.models.llama3._tokenizer import Llama3Tokenizer
+from torchtune.models.llama3._tokenizer_custom import Llama3STokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 import logging
@@ -19,6 +20,22 @@ Model builders build specific instantiations using component builders. For examp
 the llama3_8b model builder uses the llama3 component builder to create the
 Llama3 8B model.
 """
+def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Llama3Tokenizer:
+    """
+    Tokenizer for Llama3.
+
+    Args:
+        path (str): path to the tokenizer which is not added any sound tokens
+        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens, or a local json file 
+            structured similarly. Default is None to use the canonical Llama3 special tokens.
+    
+    Returns:
+        Llama3Tokenizer: Instantiation of the Llama3S tokenizer with sound tokens
+    """
+    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
+    return Llama3STokenizer(path=path, special_tokens=special_tokens)
+
 
 def llama3_s_8b(path: str, special_tokens_path: Optional[str] = None) -> TransformerDecoder:
     """
@@ -85,35 +102,6 @@ def llama3_70b() -> TransformerDecoder:
         norm_eps=1e-5,
         rope_base=500000.0,
     )
-def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Llama3Tokenizer:
-    """
-    Tokenizer for Llama3.
-
-    Args:
-        path (str): path to the tokenizer
-        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens, or a local json file 
-            structured similarly. Default is None to use the canonical Llama3 special tokens.
-    
-    Returns:
-        Llama3Tokenizer: Instantiation of the Llama3 tokenizer
-    """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    new_sound_start = "<|sound_start|>"   # Start token
-    new_sound_end = "<|sound_end|>"       # End token
-    num_tokens = 1024                     # Number of sound tokens
-
-    # Generate sound tokens with format for llama3
-    new_sound_tokens = [f"<|sound_{i:04}|>" for i in range(num_tokens)]
-    special_sound_tokens = [new_sound_start, new_sound_end]
-    # add special sound tokens to the list of special tokens
-    special_tokens = special_tokens + special_sound_tokens
-    # add new sound tokens to the vocab
-    tokenizer = Llama3Tokenizer(path=path, special_tokens=special_tokens)
-    tokenizer.add_tokens(new_sound_tokens, special_tokens=True)
-
-    
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens)
 
 def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Llama3Tokenizer:
     """

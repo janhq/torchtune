@@ -18,7 +18,7 @@
 # best to use 8B_full_single_device.yaml for those cases
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.llama3.llama3_tokenizer
+  _component_: torchtune.models.llama3.llama3_s_tokenizer
   path: ../model_zoo/tokenizer.model
 
 # Dataset
