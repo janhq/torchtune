@@ -17,10 +17,11 @@ class CustomTikTokenTokenizer(TikTokenBaseTokenizer):
         special_tokens: Dict[str, int],
     ):
         mergeable_ranks = load_tiktoken_bpe(path)
+        # print(mergeable_ranks.type)
         old_vocab_size = len(mergeable_ranks) + len(special_tokens)
         self.old_vocab_size = old_vocab_size
         print(f"old_vocab_size: {old_vocab_size}")
-        
+        # add sound tokens to the vocab. 
         SOUND_TOKENS = {
             f"{sound_tokens[i]}".encode("utf8"): old_vocab_size + i
             for i in range(len(sound_tokens))
@@ -35,14 +36,18 @@ class CustomTikTokenTokenizer(TikTokenBaseTokenizer):
             special_tokens=special_tokens,
         )
 
+        # Vocab size without special tokens
         self.base_vocab_size = len(mergeable_ranks)
+        # Vocab size with special tokens
+        
         self.vocab_size = self.tt_model.n_vocab
         self.bos_id = bos_id
         self.eos_id = eos_id
+
     #encode normal new sound tokens    
     def single_encode(self, token: str) -> int:
         return self.tt_model.encode_single_token(token)
-    #encode 
+    #Covert "<|sound_0000|><|sound_0001|>" -> List[ids]
     def encode_sound_tokens(self, token: str) -> List[int]:
         sound_tokens = token.strip().split('|><|')
         sound_tokens = sound_tokens[1:-1]
