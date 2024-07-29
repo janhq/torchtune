@@ -254,6 +254,13 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+        # Learning rate scheduler can only be set up after number of steps
+        # has been computed
+        self._lr_scheduler = self._setup_lr_scheduler(
+            cfg_lr_scheduler=cfg.lr_scheduler,
+            num_training_steps=self.total_epochs * self._steps_per_epoch,
+            last_epoch=self.global_step - 1,
+        )
 
     def _setup_model(
         self,
@@ -310,21 +317,32 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
     def _setup_optimizer(
         self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
     ) -> Optimizer:
-        """
-        Set up the optimizer. This method also handles transforing the state dict
-        for FSDP.
-        """
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-
         if opt_state_dict:
-            opt_state_dict = FSDP.optim_state_dict_to_load(
-                self._model, optimizer, opt_state_dict
+            utils.load_from_full_optimizer_state_dict(
+                optimizer,
+                opt_state_dict,
+                self._device,
             )
-            optimizer.load_state_dict(opt_state_dict)
 
         if self._is_rank_zero:
-            log.info("Optimizer is initialized.")
+            log.info("Optimizer and loss are initialized.")
         return optimizer
+    def _setup_lr_scheduler(
+        self,
+        cfg_lr_scheduler: DictConfig,
+        num_training_steps: int,
+        last_epoch: int,
+    ) -> Optimizer:
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            self._optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
+        if self._is_rank_zero:
+            log.info("Learning rate scheduler is initialized.")
+        return lr_scheduler
 
     def _setup_data(
         self,
@@ -381,26 +399,28 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
         checkpoint_dict = {}
-
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        with FSDP.state_dict_type(
+        cpu_state_dict = utils.get_full_model_state_dict(
             self._model,
-            StateDictType.FULL_STATE_DICT,
-            FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
-            FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
-        ):
-            cpu_state_dict = self._model.state_dict()
-            opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
+            self._is_rank_zero,
+        )
+        if intermediate_checkpoint:
+            opt_state_dict = utils.get_full_optimizer_state_dict(
+                self._optimizer,
+                self._is_rank_zero,
+            )
+        else:
+            opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
 
             checkpoint_dict.update({utils.MODEL_KEY: cpu_state_dict})
-
-            # if training is in-progress, checkpoint the optimizer state as well
-            if epoch + 1 < self.total_epochs:
+            
+            if intermediate_checkpoint:
                 checkpoint_dict.update(
                     {
                         utils.OPT_KEY: opt_state_dict,
@@ -410,12 +430,13 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                         utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
-
+        
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
-                intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+                intermediate_checkpoint=intermediate_checkpoint,
             )
+            
 
     def train(self) -> None:
         """
@@ -450,7 +471,6 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
                 # Get the attention mask and position ids from the dataset if they
@@ -482,6 +502,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
@@ -514,6 +535,9 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                     running_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
+                    # for debugging purposes, break after 5 steps
+                    if self.global_step == 5:
+                        break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
