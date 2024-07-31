@@ -164,6 +164,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         """
         try:
             self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+            self.global_step = ckpt_dict[utils.STEPS_KEY]
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[utils.SEED_KEY]:
@@ -257,7 +258,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step = self.epochs_run * self._steps_per_epoch
+        self.global_step += self.epochs_run * self._steps_per_epoch
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -467,6 +468,8 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                 {
                     utils.OPT_KEY: opt_state_dict,
                     utils.SEED_KEY: self.seed,
+                    utils.STEPS_KEY: self.global_step,
+                    utils.TOTAL_STEPS_KEY: self.total_epochs * self._steps_per_epoch,
                     utils.EPOCHS_KEY: self.epochs_run,
                     utils.TOTAL_EPOCHS_KEY: self.total_epochs,
                     utils.MAX_STEPS_KEY: self.max_steps_per_epoch,

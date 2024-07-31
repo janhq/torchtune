@@ -50,7 +50,7 @@ checkpointer:
   model_type: LLAMA3
 resume_from_checkpoint: True
 save_every_n_steps: 1
-max_checkpoints: 3
+max_checkpoints: 5
 # Fine-tuning arguments
 batch_size: 1
 epochs: 1

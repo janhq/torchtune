@@ -16,6 +16,7 @@ ADAPTER_KEY = "adapter"
 # number of epochs completed thus far
 EPOCHS_KEY = "epochs_run"
 # number of steps completed thus far    
+STEPS_KEY = "steps_run"
 MAX_STEPS_KEY = "max_steps_per_epoch"
 MODEL_KEY = "model"
 OPT_KEY = "optimizer"
@@ -23,3 +24,4 @@ SEED_KEY = "seed"
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs
 TOTAL_EPOCHS_KEY = "total_epochs"
+TOTAL_STEPS_KEY = "total_steps"
