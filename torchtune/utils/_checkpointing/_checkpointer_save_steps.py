@@ -29,7 +29,7 @@ class FullModelHFCheckpointerSaveSteps(FullModelHFCheckpointer):
         self,
         state_dict: Dict[str, Any],
         epoch: int,
-        step: None,  
+        step: int = None,  
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
     ) -> None:

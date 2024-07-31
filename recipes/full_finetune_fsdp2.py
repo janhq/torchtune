@@ -397,13 +397,13 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int, save_steps: False) -> None:
+    def save_checkpoint(self, epoch: int) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
         checkpoint_dict = {}
-        intermediate_checkpoint = (epoch + 1 < self.total_epochs) or (save_steps)
+        intermediate_checkpoint = (epoch + 1 < self.total_epochs)
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = utils.get_full_model_state_dict(
@@ -480,19 +480,23 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                 intermediate_checkpoint=True,
             )
     def cleanup_old_checkpoints(self):
-        checkpoints = sorted(
-            [d for d in os.listdir(self._output_dir) if d.startswith("checkpoint_step_")],
-            key=lambda x: int(x.split("_")[-1])
-        )
-
-        while len(checkpoints) >= self.max_checkpoints:
-            oldest_checkpoint = checkpoints.pop(0)
-            oldest_checkpoint_path = Path(self._output_dir) / oldest_checkpoint
-            if oldest_checkpoint_path.is_dir():
-                for file in oldest_checkpoint_path.glob("*"):
-                    file.unlink()
-                oldest_checkpoint_path.rmdir()
-            logging.info(f"Removed old checkpoint: {oldest_checkpoint}")
+        _output_dir = self._checkpointer._output_dir
+    
+        if len(checkpoints) >= self.max_checkpoints:
+            if self._is_rank_zero:
+                checkpoints = sorted(
+                    [d for d in os.listdir(_output_dir) if d.startswith("checkpoint_step_")],
+                    key=lambda x: int(x.split("_")[-1])
+                )
+                oldest_checkpoint = checkpoints.pop(0)
+                oldest_checkpoint_path = Path(_output_dir) / oldest_checkpoint
+                if oldest_checkpoint_path.is_dir():
+                    for file in oldest_checkpoint_path.glob("*"):
+                        file.unlink()
+                    oldest_checkpoint_path.rmdir()
+                log.info(
+                    f"Deleted oldest checkpoint with path: {oldest_checkpoint_path}"
+                )
 
     def train(self) -> None:
         """
