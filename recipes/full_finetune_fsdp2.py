@@ -484,12 +484,12 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
             )
     def cleanup_old_checkpoints(self):
         _output_dir = self._checkpointer._output_dir
-        checkpoints = sorted(
-                    [d for d in os.listdir(_output_dir) if d.startswith("checkpoint_step_")],
-                    key=lambda x: int(x.split("_")[-1])
-                )
-        if len(checkpoints) >= self.max_checkpoints:
-            if self._is_rank_zero:
+        if self._is_rank_zero:
+            checkpoints = sorted(
+                        [d for d in os.listdir(_output_dir) if d.startswith("checkpoint_step_")],
+                        key=lambda x: int(x.split("_")[-1])
+                    )
+            if len(checkpoints) >= self.max_checkpoints:
                 oldest_checkpoint = checkpoints.pop(0)
                 oldest_checkpoint_path = Path(_output_dir) / oldest_checkpoint
                 if oldest_checkpoint_path.is_dir():

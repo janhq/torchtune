@@ -123,7 +123,6 @@ class FullModelHFCheckpointerSaveSteps(FullModelHFCheckpointer):
         # recipe_checkpoint contains the recipe state. This should be available if
         # resume_from_checkpoint is True
 
-
     @override
     def save_checkpoint(
         self,
@@ -140,6 +139,9 @@ class FullModelHFCheckpointerSaveSteps(FullModelHFCheckpointer):
             # Temporarily change the output directory
             original_output_dir = self._output_dir
             self._output_dir = checkpoint_dir
+            save_config(checkpoint_dir, self._config)
+            if self._is_rank_zero:
+                log.info(f"Saving config file to {checkpoint_dir}")
             # Call the parent class's save_checkpoint method
             super().save_checkpoint(
                 state_dict,
