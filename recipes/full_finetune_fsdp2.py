@@ -34,9 +34,9 @@ from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
-
+import os
 from tqdm import tqdm
-
+import re   
 
 log = utils.get_logger("DEBUG")
 
@@ -130,6 +130,9 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self.save_every_n_steps = cfg.save_every_n_steps  # Save checkpoint every 1000 steps
+        self.max_checkpoints = cfg.max_checkpoints  # Maximum number of checkpoints to keep
+        # os.makedirs(self._output_dir, exist_ok=True)
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -393,13 +396,13 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int, save_steps: False) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
         checkpoint_dict = {}
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
+        intermediate_checkpoint = (epoch + 1 < self.total_epochs) or (save_steps)
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = utils.get_full_model_state_dict(
@@ -436,7 +439,52 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
+    def save_intermediate_checkpoint(self) -> None:
+        """
+        Save state dict to file. The recipe save_checkpoint method is responsible for
+        correctly creating the checkpoint dict and passing to the checkpointer.
+        """
+        checkpoint_dict = {}
+        # To prevent GPU memory from spiking during checkpoint save,
+        # we consolidate the full model and optim state dicts on CPU for rank 0
+        cpu_state_dict = utils.get_full_model_state_dict(
+            self._model,
+            self._is_rank_zero,
+        )
+        opt_state_dict = utils.get_full_optimizer_state_dict(
+            self._optimizer,
+            self._is_rank_zero,
+        )
+
+        # Now that we have the model and opt state dict, create the actual checkpoint dict
+        # to be sent to the checkpointer and ultimately written to file
+        if self._is_rank_zero:
+
+            checkpoint_dict.update({utils.MODEL_KEY: cpu_state_dict})
             
+            checkpoint_dict.update(
+                {
+                    utils.OPT_KEY: opt_state_dict,
+                    utils.SEED_KEY: self.seed,
+                    utils.EPOCHS_KEY: self.epochs_run,
+                    utils.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                }
+            )
+        
+            self._checkpointer.save_checkpoint(
+                checkpoint_dict,
+                epoch=self.global_step,
+                intermediate_checkpoint=True,
+            )
+    def cleanup_old_checkpoints(self):
+        checkpoints = [f for f in os.listdir(self.checkpoint_dir) if f.startswith("hf_model_") and f.endswith(".pt")]
+        checkpoints.sort(key=lambda x: int(re.search(r'_(\d{4})\.pt', x).group(1)))
+        
+        while len(checkpoints) > self.max_checkpoints:
+            oldest_checkpoint = checkpoints.pop(0)
+            os.remove(os.path.join(self.checkpoint_dir, oldest_checkpoint))
+            print(f"Removed old checkpoint: {oldest_checkpoint}")
 
     def train(self) -> None:
         """
@@ -530,7 +578,11 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                             log_dict,
                             step=self.global_step,
                         )
-
+                    # Save checkpoint every n steps
+                    if self.global_step % self.save_every_n_steps == 0:
+                        self.save_intermediate_checkpoint()
+                                             
+                        self.cleanup_old_checkpoints()
                     # Reset running stats for the next step
                     running_loss = 0
                     num_tokens = 0
