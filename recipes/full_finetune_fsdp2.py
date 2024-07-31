@@ -37,6 +37,7 @@ from torchtune.utils.activations import apply_selective_activation_checkpointing
 import os
 from tqdm import tqdm
 import re   
+from pathlib import Path
 
 log = utils.get_logger("DEBUG")
 
@@ -439,7 +440,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
-    def save_intermediate_checkpoint(self) -> None:
+    def save_intermediate_checkpoint(self, epoch) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
@@ -474,17 +475,24 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
-                epoch=self.global_step,
+                epoch=epoch,
+                step=self.global_step,
                 intermediate_checkpoint=True,
             )
     def cleanup_old_checkpoints(self):
-        checkpoints = [f for f in os.listdir(self.checkpoint_dir) if f.startswith("hf_model_") and f.endswith(".pt")]
-        checkpoints.sort(key=lambda x: int(re.search(r'_(\d{4})\.pt', x).group(1)))
-        
-        while len(checkpoints) > self.max_checkpoints:
+        checkpoints = sorted(
+            [d for d in os.listdir(self._output_dir) if d.startswith("checkpoint_step_")],
+            key=lambda x: int(x.split("_")[-1])
+        )
+
+        while len(checkpoints) >= self.max_checkpoints:
             oldest_checkpoint = checkpoints.pop(0)
-            os.remove(os.path.join(self.checkpoint_dir, oldest_checkpoint))
-            print(f"Removed old checkpoint: {oldest_checkpoint}")
+            oldest_checkpoint_path = Path(self._output_dir) / oldest_checkpoint
+            if oldest_checkpoint_path.is_dir():
+                for file in oldest_checkpoint_path.glob("*"):
+                    file.unlink()
+                oldest_checkpoint_path.rmdir()
+            logging.info(f"Removed old checkpoint: {oldest_checkpoint}")
 
     def train(self) -> None:
         """
@@ -580,9 +588,9 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                         )
                     # Save checkpoint every n steps
                     if self.global_step % self.save_every_n_steps == 0:
-                        self.save_intermediate_checkpoint()
-                                             
+
                         self.cleanup_old_checkpoints()
+                        self.save_intermediate_checkpoint(epoch=curr_epoch+1)
                     # Reset running stats for the next step
                     running_loss = 0
                     num_tokens = 0

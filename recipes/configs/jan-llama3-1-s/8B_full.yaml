@@ -26,7 +26,7 @@ dataset:
   _component_: torchtune.datasets.chat_dataset
   source: jan-hq/instruction-speech-conversation-tt
   conversation_style: openai
-  max_seq_len: 4096
+  max_seq_len: 3000
   split: train
   train_on_input: True
 
@@ -37,7 +37,7 @@ model:
   _component_: torchtune.models.llama3_1.llama3_1_s_8b
   # path: model_zoo/Llama3.1_s_8b_init
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.utils.FullModelHFCheckpointerSaveSteps
   checkpoint_dir: ../model_zoo/Llama3.1_s_8b_init
   checkpoint_files: [
     model-00001-of-00004.safetensors,

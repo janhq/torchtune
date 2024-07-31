@@ -9,6 +9,7 @@ from ._checkpointer import (  # noqa
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
 )
+from ._checkpointer_save_steps import FullModelHFCheckpointerSaveSteps  # noqa
 from ._checkpointer_utils import ModelType  # noqa
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",
     "ModelType",
+    "FullModelHFCheckpointerSaveSteps",
 ]
