@@ -46,8 +46,14 @@ class Llama3STokenizer(Llama3Tokenizer):
     def single_encode(self, token: str) -> int:
         return self.tt_model.single_encode(token)
 
-    def encode_sound_tokens(self, sound_text: str) -> List[int]:
-        return self.tt_model.encode_sound_tokens(sound_text)
+    def encode_sound_tokens(self, sound_text: str, add_start: bool, add_end: bool) -> List[int]:
+        token_ids = []
+        if add_start:
+            token_ids += [self.sound_start_id]
+        token_ids += self.tt_model.encode_sound_tokens(sound_text)
+        if add_end:
+            token_ids += [self.sound_end_id]
+        return token_ids
     @override
     def _tokenize_body(self, message: Message) -> List[int]:
         tokenized_body = []
@@ -55,7 +61,7 @@ class Llama3STokenizer(Llama3Tokenizer):
             if item["type"] == "text":
                 if "<|sound_start|>" in item["content"] and "<|sound_end|>" in item["content"]:
                     tokenized_body += [self.sound_start_id]
-                    tokenized_body += self.tt_model.encode_sound_tokens(item["content"])
+                    tokenized_body += self.tt_model.encode_sound_tokens(item["content"], add_start=False, add_end=False)
                     tokenized_body += [self.sound_end_id]
                 else:
                     tokenized_body += self.encode(
