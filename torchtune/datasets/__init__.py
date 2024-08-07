@@ -19,6 +19,11 @@ from torchtune.datasets._text_completion import (
     text_completion_dataset,
     TextCompletionDataset,
 )
+from torchtune.datasets._sound_completion import (
+    SoundCompletionDataset,
+    sound_completion_dataset,
+
+)
 from torchtune.datasets._wikitext import wikitext_dataset
 
 __all__ = [
@@ -39,4 +44,6 @@ __all__ = [
     "ConcatDataset",
     "wikitext_dataset",
     "PreferenceDataset",
+    "sound_completion_dataset",
+    "SoundCompletionDataset",
 ]
