@@ -6,7 +6,7 @@
 
 import sys
 import time
-
+import json
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
@@ -38,7 +38,14 @@ import os
 from tqdm import tqdm
 import re   
 from pathlib import Path
-
+from train_utils import (
+    get_num_flop_per_token,
+    get_peak_flops,
+    get_num_params,
+)
+from metrics import (
+    build_gpu_memory_monitor,
+)
 log = utils.get_logger("DEBUG")
 
 
@@ -142,6 +149,11 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+
+        # if seq_len is not provided in the config, set it to 4096
+        self.seq_len = cfg.dataset.get("max_seq_len", 4096)
+        self.checkpoint_dir = cfg.checkpointer.checkpoint_dir
+        self.whole_model = None
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -279,6 +291,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
             init_start = time.perf_counter()
 
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
+            self.whole_model = config.instantiate(cfg_model)
             model = config.instantiate(cfg_model)
         
         if enable_activation_checkpointing:
@@ -510,6 +523,18 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         _, rank = utils.get_world_size_and_rank()
 
+        model_config = self._checkpointer._config
+        # log.info(f"Model config: {model_config}")
+        num_flop_per_token = get_num_flop_per_token(
+            get_num_params(self.whole_model, exclude_embedding=True),
+            model_config,
+            self.seq_len,
+        )
+
+        # initialize GPU memory monitor and get peak flops for MFU calculation
+        gpu_memory_monitor = build_gpu_memory_monitor()
+        gpu_peak_flops = get_peak_flops(gpu_memory_monitor.device_name)
+
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -579,12 +604,21 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                     if (
                         self.global_step % self._log_every_n_steps == 0
                         and self._is_rank_zero
-                    ):
+                    ):  
                         time_per_step = time.perf_counter() - t0
+                        wps = num_tokens / time_per_step
+                        #Copy from TorchTitan
+                        # model FLOPS utilization
+                        # For its definition and calculation, please refer to the PaLM paper:
+                        # https://arxiv.org/abs/2204.02311
+                        mfu = 100 * num_flop_per_token * wps / gpu_peak_flops
+
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": wps,
+                            "mfu": mfu
+                            
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))
@@ -602,8 +636,8 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
                     # for debugging purposes, break after 5 steps
-                    if self.global_step == 5:
-                        break
+                    # if self.global_step == 5:
+                    #     break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
