@@ -24,7 +24,7 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.sound_completion_dataset
-  source: jan-hq/instruction-speech-conversation-tt
+  source: jan-hq/raw_audio_with_audio_tokens_for_pretraining
   max_seq_len: 4096
   split: train
   colum: text
@@ -51,7 +51,7 @@ resume_from_checkpoint: False
 save_every_n_steps: 1000
 max_checkpoints: 3
 # Fine-tuning arguments
-batch_size: 10
+batch_size: 6
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 4
