@@ -27,7 +27,7 @@ dataset:
   source: jan-hq/raw_audio_with_audio_tokens_for_pretraining
   max_seq_len: 4096
   split: train
-  colum: text
+  column: text
 
 seed: 42
 shuffle: True
@@ -51,7 +51,7 @@ resume_from_checkpoint: False
 save_every_n_steps: 1000
 max_checkpoints: 3
 # Fine-tuning arguments
-batch_size: 6
+batch_size: 1
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 4
