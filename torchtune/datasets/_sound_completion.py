@@ -60,11 +60,12 @@ class SoundCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column]
-        tokens = self._tokenizer.encode_sound_tokens(text=prompt, add_start=True, add_end=True, add_bos=True, add_eos=True)
+        tokens = self._tokenizer.encode_sound_tokens(prompt, add_start=True, add_end=True, add_bos=True, add_eos=True)
 
         # Truncate if needed, but don't coerce EOS id
         if self.max_seq_len is not None:
             tokens = truncate(tokens, self.max_seq_len - 1)
+        # print(tokens)
 
         # No need to offset labels by 1 - happens in the recipe
         labels = tokens.copy()
