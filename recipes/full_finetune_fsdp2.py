@@ -149,6 +149,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.local_step = 0
 
         # if seq_len is not provided in the config, set it to 4096
         self.seq_len = cfg.dataset.get("max_seq_len", 4096)
@@ -270,7 +271,11 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step += self.epochs_run * self._steps_per_epoch
+        # self.global_step += self.epochs_run * self._steps_per_epoch
+        # since we are resuming from a checkpoint, we need to update the global step
+        self.global_step = ckpt_dict[utils.STEPS_KEY] if self._resume_from_checkpoint else 0
+        # calculate the local step within the epoch
+        self.local_step = self.global_step % self._steps_per_epoch if self._resume_from_checkpoint else 0
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -550,7 +555,13 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            # pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            # pbar needs to start from self.local_step in case of resuming training
+            pbar = tqdm(
+                total=self._steps_per_epoch,
+                disable=not (rank == 0),
+                initial=self.local_step,
+            )
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None

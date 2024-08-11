@@ -4,7 +4,7 @@ from typing import Dict, Iterator, List
 from tiktoken import Encoding
 from tiktoken.load import load_tiktoken_bpe
 
-sound_tokens = [f'<|sound_{num:04d}|>' for num in range(1024)]
+sound_tokens = [f'<|sound_{num:04d}|>' for num in range(513)]
 
 class CustomTikTokenTokenizer(TikTokenBaseTokenizer):
     def __init__(

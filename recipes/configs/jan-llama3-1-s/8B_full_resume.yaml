@@ -23,12 +23,11 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.chat_dataset
-  source: jan-hq/instruction-speech-conversation-tt
-  conversation_style: openai
-  max_seq_len: 3000
+  _component_: torchtune.datasets.sound_completion_dataset
+  source: jan-hq/raw_audio_with_audio_tokens_for_pretraining_using_Whisper_VQ
+  max_seq_len: 500
   split: train
-  train_on_input: True
+  column: text
 
 seed: 42
 shuffle: True
@@ -50,9 +49,9 @@ checkpointer:
   model_type: LLAMA3
 resume_from_checkpoint: True
 save_every_n_steps: 1
-max_checkpoints: 5
+max_checkpoints: 3
 # Fine-tuning arguments
-batch_size: 1
+batch_size: 4
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 4
@@ -61,11 +60,11 @@ compile: False
 optimizer:
   _component_: torch.optim.AdamW #change this to use adam_mini: torchtune.modules.optimizer.Adam_mini
   weight_decay: 0.01
-  lr: 3e-4
+  lr: 2e-4
   fused: True
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
-  num_warmup_steps: 100
+  num_warmup_steps: 50
 
 loss:
   _component_: torch.nn.CrossEntropyLoss

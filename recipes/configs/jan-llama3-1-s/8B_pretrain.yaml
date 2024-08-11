@@ -24,8 +24,8 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.sound_completion_dataset
-  source: jan-hq/raw_audio_with_audio_tokens_for_pretraining
-  max_seq_len: 4096
+  source: jan-hq/raw_audio_with_audio_tokens_for_pretraining_using_Whisper_VQ
+  max_seq_len: 500
   split: train
   column: text
 
@@ -48,10 +48,10 @@ checkpointer:
   output_dir: ../model_zoo/llama3-s
   model_type: LLAMA3
 resume_from_checkpoint: False
-save_every_n_steps: 1000
+save_every_n_steps: 1
 max_checkpoints: 3
 # Fine-tuning arguments
-batch_size: 1
+batch_size: 4
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 4
@@ -64,7 +64,7 @@ optimizer:
   fused: True
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
-  num_warmup_steps: 100
+  num_warmup_steps: 50
 
 loss:
   _component_: torch.nn.CrossEntropyLoss

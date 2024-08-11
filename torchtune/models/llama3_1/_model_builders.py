@@ -31,7 +31,7 @@ def llama3_1_s_8b() -> TransformerDecoder:
     # logging.info(f"Using Llama3 Tokenizer with Vocab size: {llama3_s_tokenizer.vocab_size}")
     # logging.info(f"Numbert added Special Tokens: {len(llama3_s_tokenizer.special_tokens)} with {llama3_s_tokenizer.special_tokens}")
     return llama3_1(
-        vocab_size=129_282,
+        vocab_size=128_771,
         num_layers=32,
         num_heads=32,
         num_kv_heads=8,
