@@ -13,6 +13,7 @@ from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset
+from torchtune.datasets._sft import SFTDataset
 from torchtune.datasets._slimorca import slimorca_dataset
 from torchtune.datasets._stack_exchanged_paired import stack_exchanged_paired_dataset
 from torchtune.datasets._text_completion import (
@@ -46,4 +47,5 @@ __all__ = [
     "PreferenceDataset",
     "sound_completion_dataset",
     "SoundCompletionDataset",
+    "SFTDataset",
 ]

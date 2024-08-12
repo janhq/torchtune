@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._checkpointing import (  # noqa
+    Checkpointer,
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
@@ -27,9 +28,10 @@ from ._distributed import (  # noqa
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     set_torch_num_threads,
+    shard_model,
     validate_no_params_on_meta_device,
 )
-from ._generation import generate
+from ._generation import generate, generate_next_token  # noqa
 from ._profiler import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,
@@ -41,7 +43,7 @@ from ._profiler import (
 )
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
-from .collate import padded_collate, padded_collate_dpo
+from .collate import padded_collate
 from .constants import (  # noqa
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -49,7 +51,9 @@ from .constants import (  # noqa
     MAX_STEPS_KEY,
     MODEL_KEY,
     OPT_KEY,
+    RNG_KEY,
     SEED_KEY,
+    STEPS_KEY,
     TOTAL_EPOCHS_KEY,
 )
 from .my_constants import (  # noqa
@@ -66,6 +70,7 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
+from .pooling import get_unmasked_sequence_lengths
 
 from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
 from .quantization import get_quantizer_mode
@@ -84,7 +89,7 @@ __all__ = [
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
-    "padded_collate_dpo",
+    "get_unmasked_sequence_lengths",
     "set_activation_checkpointing",
     "set_default_dtype",
     "set_seed",
@@ -103,4 +108,6 @@ __all__ = [
     "setup_torch_profiler",
     "get_quantizer_mode",
     "generate",
+    "generate_next_token",
+    "shard_model",
 ]

@@ -58,6 +58,8 @@ class InstructDataset(Dataset):
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
+    Raises:
+        ValueError: If ``template`` is not an instance of :class:`torchtune.data.InstructTemplate`
     """
 
     def __init__(
@@ -108,7 +110,7 @@ class InstructDataset(Dataset):
         validate_messages(messages)
 
         tokens, mask = self._tokenizer.tokenize_messages(
-            messages, max_seq_len=self.max_seq_len
+            messages,
         )
 
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
@@ -119,8 +121,8 @@ class InstructDataset(Dataset):
 
 
 def instruct_dataset(
-    *,
     tokenizer: ModelTokenizer,
+    *,
     source: str,
     template: str,
     column_map: Optional[Dict[str, str]] = None,
