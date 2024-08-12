@@ -23,8 +23,9 @@ class Llama3STokenizer(Llama3Tokenizer):
         self,
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
+        max_seq_len: Optional[int] = None,
     ):
-        super().__init__(path, special_tokens or LLAMA3_S_SPECIAL_TOKENS)
+        super().__init__(path, special_tokens or LLAMA3_S_SPECIAL_TOKENS, max_seq_len)
 
         # Sound tokens for interleaved sound-text
         self.sound_start_id = self.special_tokens["<|sound_start|>"]
