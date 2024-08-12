@@ -21,6 +21,7 @@ from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
+import torch.distributed as dist
 from torch.distributed.fsdp import (
     FullOptimStateDictConfig,
     FullStateDictConfig,
@@ -239,12 +240,19 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
-        self._optimizer = self._setup_optimizer(
+        # self._optimizer = self._setup_optimizer(
+        #     cfg_optimizer=cfg.optimizer,
+        #     opt_state_dict=ckpt_dict[utils.OPT_KEY]
+        #     if self._resume_from_checkpoint
+        #     else None,
+        # )
+        self._optimizer = self._setup_optimizer_custom(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=ckpt_dict[utils.OPT_KEY]
             if self._resume_from_checkpoint
             else None,
         )
+        
 
         self._loss_fn = config.instantiate(cfg.loss)
 
@@ -350,6 +358,50 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         if self._is_rank_zero:
             log.info("Optimizer and loss are initialized.")
+        return optimizer
+    def _setup_optimizer_custom(
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+    ) -> Optimizer:
+        # Get the current device rank
+        world_size, rank = utils.get_world_size_and_rank()
+
+        # Calculate delay based on rank (10 seconds per rank)
+        delay = rank * 10
+        time.sleep(delay)
+
+        log.info(f"Device {rank} starting optimizer setup after {delay}s delay")
+
+        # Create the optimizer
+        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+
+        # Load optimizer state if provided
+        if opt_state_dict:
+            utils.load_from_full_optimizer_state_dict(
+                optimizer,
+                opt_state_dict,
+                self._device,
+            )
+
+        # Synchronize all processes
+        torch.cuda.synchronize()
+        dist.barrier()
+
+        # Calculate the maximum delay across all ranks
+        max_delay = (world_size - 1) * 10
+
+        # If this is rank 0, wait for the maximum delay to ensure all other ranks have finished
+        if self._is_rank_zero:
+            remaining_wait = max_delay - delay
+            if remaining_wait > 0:
+                log.info(f"Rank 0 waiting additional {remaining_wait}s for other ranks to finish")
+                time.sleep(remaining_wait)
+
+        # Final synchronization
+        dist.barrier()
+
+        if self._is_rank_zero:
+            log.info("All devices have completed optimizer setup")
+
         return optimizer
     def _setup_lr_scheduler(
         self,
