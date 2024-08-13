@@ -700,8 +700,8 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
                     # for debugging purposes, break after 5 steps
-                    if self.global_step == 11:
-                        log.info(f"The Data for step 11 is: {batch['tokens']}")
+                    # if self.global_step == 11:
+                    #     log.info(f"The Data for step 11 is: {batch['tokens']}")
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
