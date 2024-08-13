@@ -10,7 +10,7 @@ import json
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
-
+import itertools
 import torch
 from omegaconf import DictConfig, ListConfig
 
@@ -614,7 +614,8 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                 disable=not (rank == 0),
                 initial=self.local_step,
             )
-            for idx, batch in enumerate(self._dataloader):
+            start_batch = self.global_step % len(self._dataloader) if self._resume_from_checkpoint else 0
+            for idx, batch in itertools.islice(enumerate(self._dataloader), start_batch, None):
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -699,8 +700,8 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
                     # for debugging purposes, break after 5 steps
-                    # if self.global_step == 5:
-                    #     break
+                    # if self.global_step == 11:
+                    #     log.info(f"The Data for step 11 is: {batch['tokens']}")
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

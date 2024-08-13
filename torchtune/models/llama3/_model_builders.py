@@ -34,7 +34,7 @@ def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None, max
         Llama3Tokenizer: Instantiation of the Llama3S tokenizer with sound tokens
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len)
+    return Llama3STokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len)
 
 
 def llama3_s_8b(path: str, special_tokens_path: Optional[str] = None) -> TransformerDecoder:
