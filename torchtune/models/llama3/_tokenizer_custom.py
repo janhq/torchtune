@@ -69,7 +69,14 @@ class Llama3STokenizer(Llama3Tokenizer):
         tokenized_body = []
         for item in message.content:
             if item["type"] == "text":
-                if "<|sound_start|>" in item["content"] and "<|sound_end|>" in item["content"]:
+                if "<|reserved_special_token_69|>" in item["content"]:
+                    prefix = "<|reserved_special_token_69|>"
+                    item["content"] = item["content"][len(prefix):]
+                    tokenized_body += [128077]
+                    tokenized_body += [self.sound_start_id]
+                    tokenized_body += self.tt_model.encode_sound_tokens(item["content"])
+                    tokenized_body += [self.sound_end_id]
+                elif "<|sound_start|>" in item["content"] and "<|sound_end|>" in item["content"]:
                     tokenized_body += [self.sound_start_id]
                     tokenized_body += self.tt_model.encode_sound_tokens(item["content"])
                     tokenized_body += [self.sound_end_id]
