@@ -240,18 +240,20 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
-        # self._optimizer = self._setup_optimizer(
-        #     cfg_optimizer=cfg.optimizer,
-        #     opt_state_dict=ckpt_dict[utils.OPT_KEY]
-        #     if self._resume_from_checkpoint
-        #     else None,
-        # )
-        self._optimizer = self._setup_optimizer_custom(
-            cfg_optimizer=cfg.optimizer,
-            opt_state_dict=ckpt_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
-        )
+        if self._resume_from_checkpoint: 
+            self._optimizer = self._setup_optimizer_custom(
+                cfg_optimizer=cfg.optimizer,
+                opt_state_dict=ckpt_dict[utils.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None,
+            )
+        else:
+            self._optimizer = self._setup_optimizer(
+                cfg_optimizer=cfg.optimizer,
+                opt_state_dict=ckpt_dict[utils.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None,
+            )
         
 
         self._loss_fn = config.instantiate(cfg.loss)
