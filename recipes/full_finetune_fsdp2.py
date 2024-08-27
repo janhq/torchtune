@@ -39,11 +39,6 @@ import os
 from tqdm import tqdm
 import re   
 from pathlib import Path
-from train_utils import (
-    get_num_flop_per_token,
-    get_peak_flops,
-    get_num_params,
-)
 from metrics import (
     build_gpu_memory_monitor,
 )
