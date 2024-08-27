@@ -155,7 +155,6 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         # if seq_len is not provided in the config, set it to 4096
         self.seq_len = cfg.dataset.get("max_seq_len", 4096)
         self.checkpoint_dir = cfg.checkpointer.checkpoint_dir
-        self.whole_model = None
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -306,7 +305,6 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
             init_start = time.perf_counter()
 
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
-            self.whole_model = config.instantiate(cfg_model)
             model = config.instantiate(cfg_model)
         
         if enable_activation_checkpointing:
@@ -582,19 +580,6 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         _, rank = utils.get_world_size_and_rank()
 
-        model_config = self._checkpointer._config
-        # log.info(f"Model config: {model_config}")
-        # copy with edit from https://github.com/pytorch/torchtitan/blob/main/train.py.
-        num_flop_per_token = get_num_flop_per_token(
-            get_num_params(self.whole_model, exclude_embedding=True),
-            model_config,
-            self.seq_len,
-        )
-        # copy from https://github.com/pytorch/torchtitan/blob/main/train.py
-        # initialize GPU memory monitor and get peak flops for MFU calculation
-        gpu_memory_monitor = build_gpu_memory_monitor()
-        gpu_peak_flops = get_peak_flops(gpu_memory_monitor.device_name)
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -674,18 +659,11 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                     ):  
                         time_per_step = time.perf_counter() - t0
                         wps = num_tokens / time_per_step
-                        # copy from https://github.com/pytorch/torchtitan/blob/main/train.py
-                        # model FLOPS utilization
-                        # For its definition and calculation, please refer to the PaLM paper:
-                        # https://arxiv.org/abs/2204.02311
-                        mfu = 100 * num_flop_per_token * wps / gpu_peak_flops
 
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": wps,
-                            "mfu": mfu
-                            
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))
