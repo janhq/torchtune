@@ -1,3 +1,5 @@
+# This code is adapted from https://github.com/pytorch/torchtitan/tree/main.
+
 import gc
 import os
 from dataclasses import dataclass

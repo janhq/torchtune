@@ -584,12 +584,13 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         model_config = self._checkpointer._config
         # log.info(f"Model config: {model_config}")
+        # copy with edit from https://github.com/pytorch/torchtitan/blob/main/train.py.
         num_flop_per_token = get_num_flop_per_token(
             get_num_params(self.whole_model, exclude_embedding=True),
             model_config,
             self.seq_len,
         )
-
+        # copy from https://github.com/pytorch/torchtitan/blob/main/train.py
         # initialize GPU memory monitor and get peak flops for MFU calculation
         gpu_memory_monitor = build_gpu_memory_monitor()
         gpu_peak_flops = get_peak_flops(gpu_memory_monitor.device_name)
@@ -673,7 +674,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                     ):  
                         time_per_step = time.perf_counter() - t0
                         wps = num_tokens / time_per_step
-                        #Copy from TorchTitan
+                        # copy from https://github.com/pytorch/torchtitan/blob/main/train.py
                         # model FLOPS utilization
                         # For its definition and calculation, please refer to the PaLM paper:
                         # https://arxiv.org/abs/2204.02311
