@@ -16,7 +16,16 @@ SPECIAL_SOUND_TOKENS = {
 }
 
 LLAMA3_S_SPECIAL_TOKENS = {**LLAMA3_SPECIAL_TOKENS, **SPECIAL_SOUND_TOKENS}
-
+transcribe_prompt = [
+    "Transcribe the following audio clip: ",
+    "Convert the spoken words to text: ",
+    "What is being said in this audio clip: ",
+    "Transcribe the speech in this audio sample:",
+    "Please write down what is being said in the audio clip:",
+    "Generate a transcript from this sound file: ",
+    "Recognize the speech in this audio clip: ",
+    "Produce a text version of this audio recording: ",
+]
 class Llama3STokenizer(Llama3Tokenizer):
     @override
     def __init__(
@@ -69,12 +78,20 @@ class Llama3STokenizer(Llama3Tokenizer):
         tokenized_body = []
         for item in message.content:
             if item["type"] == "text":
+                text_part = item["type"].split("<|sound_start|>")[0]
                 if "<|reserved_special_token_69|>" in item["content"]:
                     prefix = "<|reserved_special_token_69|>"
                     item["content"] = item["content"][len(prefix):]
                     tokenized_body += [128077]
                     tokenized_body += [self.sound_start_id]
                     tokenized_body += self.tt_model.encode_sound_tokens(item["content"])
+                    tokenized_body += [self.sound_end_id]
+                elif text_part in transcribe_prompt:
+                    text_id = self.encode(text_part.strip(), add_bos=False, add_eos=False)
+                    sound_part = "<|sound_start|>"+item["type"].split("<|sound_start|>")[1] 
+                    tokenized_body += text_id
+                    tokenized_body += [self.sound_start_id]
+                    tokenized_body += self.tt_model.encode_sound_tokens(sound_part)
                     tokenized_body += [self.sound_end_id]
                 elif "<|sound_start|>" in item["content"] and "<|sound_end|>" in item["content"]:
                     tokenized_body += [self.sound_start_id]
