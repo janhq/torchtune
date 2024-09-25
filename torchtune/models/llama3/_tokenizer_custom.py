@@ -78,7 +78,7 @@ class Llama3STokenizer(Llama3Tokenizer):
         tokenized_body = []
         for item in message.content:
             if item["type"] == "text":
-                text_part = item["type"].split("<|sound_start|>")[0]
+                text_part = item["content"].split("<|sound_start|>")[0]
                 if "<|reserved_special_token_69|>" in item["content"]:
                     prefix = "<|reserved_special_token_69|>"
                     item["content"] = item["content"][len(prefix):]
@@ -88,14 +88,17 @@ class Llama3STokenizer(Llama3Tokenizer):
                     tokenized_body += [self.sound_end_id]
                 elif text_part in transcribe_prompt:
                     text_id = self.encode(text_part.strip(), add_bos=False, add_eos=False)
-                    sound_part = "<|sound_start|>"+item["type"].split("<|sound_start|>")[1] 
+                    sound_part = "<|sound_start|>"+item["content"].split("<|sound_start|>")[1] 
                     tokenized_body += text_id
                     tokenized_body += [self.sound_start_id]
                     tokenized_body += self.tt_model.encode_sound_tokens(sound_part)
                     tokenized_body += [self.sound_end_id]
                 elif "<|sound_start|>" in item["content"] and "<|sound_end|>" in item["content"]:
                     tokenized_body += [self.sound_start_id]
-                    tokenized_body += self.tt_model.encode_sound_tokens(item["content"])
+                    try:
+                        tokenized_body += self.tt_model.encode_sound_tokens(item["content"])
+                    except:
+                        print(item["content"])
                     tokenized_body += [self.sound_end_id]
                 else:
                     tokenized_body += self.encode(
