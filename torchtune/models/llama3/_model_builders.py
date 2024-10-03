@@ -22,7 +22,7 @@ Model builders build specific instantiations using component builders. For examp
 the llama3_8b model builder uses the llama3 component builder to create the
 Llama3 8B model.
 """
-def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None) -> Llama3Tokenizer:
+def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
 
@@ -36,7 +36,8 @@ def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None, max
         Llama3Tokenizer: Instantiation of the Llama3S tokenizer with sound tokens
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3STokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len)
+    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
+    return Llama3STokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
 def llama3_s_8b(path: str, special_tokens_path: Optional[str] = None) -> TransformerDecoder:

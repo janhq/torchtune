@@ -41,6 +41,7 @@ from torchtune.training.checkpointing import (
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
+    FullModelHFCheckpointerSaveSteps,
     MAX_STEPS_KEY,
     MODEL_KEY,
     ModelType,
@@ -49,6 +50,7 @@ from torchtune.training.checkpointing import (
     SEED_KEY,
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
+    TOTAL_STEPS_KEY,
     update_state_dict_for_classifier,
 )
 from torchtune.training.memory import (
@@ -77,6 +79,7 @@ __all__ = [
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",
+    "FullModelHFCheckpointerSaveSteps",
     "ModelType",
     "Checkpointer",
     "update_state_dict_for_classifier",
@@ -90,6 +93,7 @@ __all__ = [
     "SEED_KEY",
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
+    "TOTAL_STEPS_KEY",
     "get_quantizer_mode",
     "cleanup_before_training",
     "create_optim_in_bwd_wrapper",

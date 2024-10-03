@@ -35,7 +35,8 @@ TOTAL_EPOCHS_KEY = "total_epochs"
 STEPS_KEY = "steps_run"
 # rng state for ensuring correct training resuming in PPO
 RNG_KEY = "rng_state"
-
+# total number of steps for training; resumed training runs for
+TOTAL_STEPS_KEY = "total_steps"
 
 class ModelType(Enum):
     """ModelType is used by the checkpointer to distinguish between different model architectures.

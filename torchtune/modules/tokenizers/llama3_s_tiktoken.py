@@ -20,7 +20,7 @@ class CustomTikTokenTokenizer(TikTokenBaseTokenizer):
         # print(mergeable_ranks.type)
         old_vocab_size = len(mergeable_ranks) + len(special_tokens)
         self.old_vocab_size = old_vocab_size
-        print(f"old_vocab_size: {old_vocab_size}")
+        # print(f"old_vocab_size: {old_vocab_size}")
         # add sound tokens to the vocab. 
         SOUND_TOKENS = {
             f"{sound_tokens[i]}".encode("utf8"): old_vocab_size + i

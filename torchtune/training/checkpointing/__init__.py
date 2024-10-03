@@ -10,6 +10,8 @@ from torchtune.training.checkpointing._checkpointer import (
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
 )
+from torchtune.training.checkpointing._checkpointer_save_steps import FullModelHFCheckpointerSaveSteps
+
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -23,6 +25,7 @@ from torchtune.training.checkpointing._utils import (
     SEED_KEY,
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
+    TOTAL_STEPS_KEY,
     update_state_dict_for_classifier,
 )
 
@@ -30,12 +33,14 @@ Checkpointer = Union[
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
+    FullModelHFCheckpointerSaveSteps,
 ]
 
 __all__ = [
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",
+    "FullModelHFCheckpointerSaveSteps",
     "ModelType",
     "Checkpointer",
     "update_state_dict_for_classifier",
@@ -49,5 +54,6 @@ __all__ = [
     "SEED_KEY",
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
+    "TOTAL_STEPS_KEY",
     "FormattedCheckpointFiles",
 ]
