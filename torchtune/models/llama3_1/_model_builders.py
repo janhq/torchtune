@@ -34,7 +34,7 @@ def llama3_1_s_8b() -> TransformerDecoder:
         intermediate_dim=14336,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
     )
 
 def llama3_1_8b() -> TransformerDecoder:

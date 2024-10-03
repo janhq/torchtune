@@ -252,10 +252,12 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
+        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            collate_fn=collate_name,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -418,6 +420,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        collate_fn: str,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
