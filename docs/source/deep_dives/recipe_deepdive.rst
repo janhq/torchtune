@@ -14,9 +14,6 @@ This deep-dive will walk you through the design of training-recipes in torchtune
       * What are the core components that make up a recipe?
       * How should I structure a new recipe?
 
-
-What are Recipes?
------------------
 Recipes are the primary entry points for torchtune users. These can be thought of
 as "targeted" end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
@@ -139,7 +136,7 @@ Initialize recipe state including seed, device, dtype, metric loggers, relevant 
     def __init__(...):
 
         self._device = utils.get_device(device=params.device)
-        self._dtype = utils.get_dtype(dtype=params.dtype, device=self._device)
+        self._dtype = training.get_dtype(dtype=params.dtype, device=self._device)
         ...
 
 Load checkpoint, update recipe state from checkpoint, initialize components and load state dicts from checkpoint

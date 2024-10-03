@@ -5,23 +5,23 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Union
+from typing import List
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torch import nn
-
-from torchtune.modules.transformer import TransformerDecoder, TiedEmbeddingTransformerDecoder
+from torchtune.modules.transformer import TransformerDecoder
 from torchtune.models.qwen2._positional_embeddings import Qwen2RotaryPositionalEmbeddings
 
 from torchtune.modules import (
-    CausalSelfAttention,
+    MultiHeadAttention,
     FeedForward,
     RMSNorm,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
+    TiedLinear
 )
 
 
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
+from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
 """
 Component builders for the Qwen2 model and popular variants such as LoRA.
@@ -29,7 +29,7 @@ Component builders for the Qwen2 model and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
+- The building blocks themselves are very flexible. For example, ``MultiHeadAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -48,11 +48,11 @@ def qwen2(
     norm_eps: float = 1e-5,
     rope_base: float = 1_000_000.0,
     tie_word_embeddings: bool = False,
-) -> Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]:
+) -> TransformerDecoder:
     """
     Build the decoder associated with the Qwen2 model. This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -82,7 +82,7 @@ def qwen2(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = Qwen2RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -97,35 +97,27 @@ def qwen2(
         attn_dropout=attn_dropout,
     )
     mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    output_proj = None if tie_word_embeddings else nn.Linear(embed_dim, vocab_size, bias=False)
-    if output_proj is None:
-        return TiedEmbeddingTransformerDecoder(
-            tok_embeddings=tok_embeddings,
-            layer=layer,
-            num_layers=num_layers,
-            max_seq_len=max_seq_len,
-            num_heads=num_heads,
-            head_dim=head_dim,
-            norm=RMSNorm(embed_dim, eps=norm_eps),
-        )
+    if tie_word_embeddings:
+        output_proj = TiedLinear(tok_embeddings)
     else:
-        return TransformerDecoder(
-            tok_embeddings=tok_embeddings,
-            layer=layer,
-            num_layers=num_layers,
-            max_seq_len=max_seq_len,
-            num_heads=num_heads,
-            head_dim=head_dim,
-            norm=RMSNorm(embed_dim, eps=norm_eps),
-            output=output_proj,
-        )
+        output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
+    return TransformerDecoder(
+        tok_embeddings=tok_embeddings,
+        layers=layer,
+        num_layers=num_layers,
+        max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=head_dim,
+        norm=RMSNorm(embed_dim, eps=norm_eps),
+        output=output_proj,
+    )
 
 
 def qwen2_mlp(dim: int, hidden_dim: int) -> FeedForward:
@@ -159,9 +151,10 @@ def lora_qwen2(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     # Quantization args
     quantize_base: bool = False,
-) -> Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]:
+) -> TransformerDecoder:
     """
     Return a version of Qwen2 (an instance of :func:`~torchtune.models.qwen2.transformer.Qwen2TransformerDecoder`)
     with LoRA applied based on the passed in configuration.
@@ -218,6 +211,7 @@ def lora_qwen2(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -228,12 +222,13 @@ def lora_qwen2(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             quantize_base=quantize_base,
+            use_dora=use_dora,
             lora_dropout=lora_dropout,
         )
     else:
         mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
 
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
@@ -248,35 +243,25 @@ def lora_qwen2(
                 "apply_lora_to_output is incompatible with tie_word_embeddings,"
                 " as there would be no output to apply lora to!"
             )
-        output_proj = None
+        output_proj = TiedLinear(tok_embeddings)
     else:
         # TODO: quantize_base is not applied to final output_proj currently.
+        adapter_cls = DoRALinear if use_dora else LoRALinear
         output_proj = (
-            LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
+            adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
             if apply_lora_to_output
             else nn.Linear(embed_dim, vocab_size, bias=False)
         )
-    if output_proj is None:
-        model = TiedEmbeddingTransformerDecoder(
-            tok_embeddings=tok_embeddings,
-            layer=layer,
-            num_layers=num_layers,
-            max_seq_len=max_seq_len,
-            num_heads=num_heads,
-            head_dim=(embed_dim // num_heads),
-            norm=RMSNorm(embed_dim, eps=norm_eps),
-        )
-    else:
-        model = TransformerDecoder(
-            tok_embeddings=tok_embeddings,
-            layer=layer,
-            num_layers=num_layers,
-            max_seq_len=max_seq_len,
-            num_heads=num_heads,
-            head_dim=(embed_dim // num_heads),
-            norm=RMSNorm(embed_dim, eps=norm_eps),
-            output=output_proj,
-        )
+    model = TransformerDecoder(
+        tok_embeddings=tok_embeddings,
+        layers=layer,
+        num_layers=num_layers,
+        max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=(embed_dim // num_heads),
+        norm=RMSNorm(embed_dim, eps=norm_eps),
+        output=output_proj,
+    )
 
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
@@ -297,7 +282,7 @@ def lora_qwen2(
 def lora_qwen2_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # CausalSelfAttention args
+    # MultiHeadAttention args
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
@@ -308,10 +293,11 @@ def lora_qwen2_self_attention(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
-) -> CausalSelfAttention:
+) -> MultiHeadAttention:
     """
-    Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA
+    Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
     applied to a subset of its linear layers
 
     Args:
@@ -336,7 +322,7 @@ def lora_qwen2_self_attention(
             LoRA is being applied to. Default is ``False``.
 
     Returns:
-        CausalSelfAttention: instantiation of self-attention module with LoRA
+        MultiHeadAttention: instantiation of self-attention module with LoRA
         applied to a subset of Q, K, V, output projections.
 
     Raises:
@@ -347,8 +333,9 @@ def lora_qwen2_self_attention(
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    adapter_cls = DoRALinear if use_dora else LoRALinear
     q_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_heads * head_dim,
             rank=lora_rank,
@@ -361,7 +348,7 @@ def lora_qwen2_self_attention(
         else nn.Linear(embed_dim, num_heads * head_dim, bias=True)
     )
     k_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
@@ -374,7 +361,7 @@ def lora_qwen2_self_attention(
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
     )
     v_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             num_kv_heads * head_dim,
             rank=lora_rank,
@@ -387,7 +374,7 @@ def lora_qwen2_self_attention(
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
     )
     output_proj = (
-        LoRALinear(
+        adapter_cls(
             embed_dim,
             embed_dim,
             rank=lora_rank,
@@ -399,7 +386,7 @@ def lora_qwen2_self_attention(
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
     rope = Qwen2RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -423,9 +410,11 @@ def lora_qwen2_mlp(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> FeedForward:
-    gate_proj = LoRALinear(
+    adapter_cls = DoRALinear if use_dora else LoRALinear
+    gate_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
@@ -433,7 +422,7 @@ def lora_qwen2_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
     )
-    down_proj = LoRALinear(
+    down_proj = adapter_cls(
         in_dim=hidden_dim,
         out_dim=dim,
         rank=lora_rank,
@@ -441,7 +430,7 @@ def lora_qwen2_mlp(
         dropout=lora_dropout,
         quantize_base=quantize_base,
     )
-    up_proj = LoRALinear(
+    up_proj = adapter_cls(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,

@@ -4,9 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from functools import partial
-from typing import Dict, List, Protocol, Tuple
+from typing import Dict, List, Protocol, Tuple, Union
 
-from torchtune.data import Message, Role
+from torchtune.config._utils import _get_component_from_path
+
+from torchtune.data._messages import Message, Role
+
+_TemplateType = Union[str, Dict[Role, Tuple[str, str]]]
 
 
 class PromptTemplateInterface(Protocol):
@@ -23,6 +27,7 @@ class PromptTemplateInterface(Protocol):
     def __call__(
         self,
         messages: List[Message],
+        inference: bool = False,
     ) -> List[Message]:
         """
         Format each role's message(s) according to the prompt template
@@ -30,6 +35,7 @@ class PromptTemplateInterface(Protocol):
         Args:
             messages (List[Message]): a single conversation, structured as a list
                 of :class:`~torchtune.data.Message` objects
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             The formatted list of messages
@@ -85,13 +91,16 @@ class PromptTemplate(PromptTemplateInterface):
     ):
         self.template = template
 
-    def __call__(self, messages: List[Message]) -> List[Message]:
+    def __call__(
+        self, messages: List[Message], inference: bool = False
+    ) -> List[Message]:
         """
         Format each role's message(s) according to the prompt template by prepending
         and appending the defined tags.
 
         Args:
             messages (List[Message]): list of messages to apply the template to
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             List[Message]: The formatted list of messages
@@ -142,13 +151,14 @@ class ChatMLTemplate(PromptTemplateInterface):
     template = {
         "system": ("<|im_start|>system\n", "<|im_end|>\n"),
         "user": ("<|im_start|>user\n", "<|im_end|>\n"),
-        "assistant": ("<|im_start|>assistant\n", "<|im_end|>"),
+        "assistant": ("<|im_start|>assistant\n", "<|im_end|>\n"),
         "ipython": ("", ""),
     }
 
     def __call__(
         self,
         messages: List[Message],
+        inference: bool = False,
     ) -> List[Message]:
         """
         Format user, assistant, and system messages with appropriate tags.
@@ -156,17 +166,30 @@ class ChatMLTemplate(PromptTemplateInterface):
         Args:
             messages (List[Message]): a single conversation, structured as a list
                 of `Message` objects
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             The formatted list of messages
         """
         formatted_dialogue = []
-        for message in messages:
-            content = (
-                [{"type": "text", "content": self.template[message.role][0]}]
-                + message.content
-                + [{"type": "text", "content": self.template[message.role][1]}]
-            )
+        for index, message in enumerate(messages):
+            prepend_tag = self.template[message.role][0]
+            append_tag = self.template[message.role][1]
+            # If empty assistant message at the end, we are expecting the model
+            # to generate the response continuing from the assistant prepend tag,
+            # so do not add the append tag.
+            if (
+                message.role == "assistant"
+                and index == len(messages) - 1
+                and len(message.text_content) == 0
+            ):
+                content = [{"type": "text", "content": prepend_tag}] + message.content
+            else:
+                content = (
+                    [{"type": "text", "content": prepend_tag}]
+                    + message.content
+                    + [{"type": "text", "content": append_tag}]
+                )
             formatted_dialogue.append(
                 Message(
                     role=message.role,
@@ -211,3 +234,47 @@ A prompt template for summarization tasks::
 
 Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
 """
+QuestionAnswerTemplate = partial(
+    PromptTemplate,
+    template={
+        "user": ("Question: ", "\n\nAnswer: "),
+    },
+)
+QuestionAnswerTemplate.__doc__ = """
+A prompt template for question answering tasks::
+
+    Question: {user_message}
+
+    Answer: {assistant_message}
+
+Please see :class:`~torchtune.data.PromptTemplate` for full API arguments.
+"""
+
+
+def _get_prompt_template(
+    prompt_template: _TemplateType,
+) -> PromptTemplateInterface:
+    """
+    Retrieve prompt template from import dotpath or create a custom one with provided
+    template dictionary.
+
+    Args:
+        prompt_template (_TemplateType): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags.
+
+    Returns:
+        PromptTemplateInterface: the specified prompt template
+
+    Raises:
+        ValueError: If a string or dictionary is not passed in
+    """
+    if isinstance(prompt_template, str):
+        return _get_component_from_path(prompt_template)()
+    elif isinstance(prompt_template, dict):
+        return PromptTemplate(prompt_template)
+    else:
+        raise ValueError(
+            f"Prompt template must be a dotpath string or dictionary with custom template, got {type(prompt_template)}"
+        )

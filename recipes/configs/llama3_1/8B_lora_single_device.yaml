@@ -24,14 +24,16 @@ model:
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
+  lora_dropout: 0.0
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /tmp/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
+  max_seq_len: null
 
 checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
@@ -55,6 +57,7 @@ batch_size: 2
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
+  fused: True
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
@@ -62,18 +65,18 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 64
-compile: False
+compile: False # set it to True for better memory and performance
 
 # Logging
 output_dir: /tmp/lora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False
@@ -81,11 +84,14 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
+
+# Activations Memory
 enable_activation_checkpointing: True
+enable_activation_offloading: False
 
 # Profiler (disabled)
 profiler:
-  _component_: torchtune.utils.setup_torch_profiler
+  _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts

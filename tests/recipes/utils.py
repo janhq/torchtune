@@ -13,9 +13,9 @@ import torch
 from torch.utils.data import Dataset
 
 CKPT_COMPONENT_MAP = {
-    "tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
-    "meta": "torchtune.utils.FullModelMetaCheckpointer",
-    "hf": "torchtune.utils.FullModelHFCheckpointer",
+    "tune": "torchtune.training.FullModelTorchTuneCheckpointer",
+    "meta": "torchtune.training.FullModelMetaCheckpointer",
+    "hf": "torchtune.training.FullModelHFCheckpointer",
 }
 
 
@@ -49,13 +49,23 @@ def get_assets_path():
     return Path(__file__).parent.parent / "assets"
 
 
+def dummy_stack_exchange_dataset_config():
+    data_files = os.path.join(get_assets_path(), "stack_exchange_paired_tiny.json")
+    out = [
+        "dataset._component_=torchtune.datasets.stack_exchange_paired_dataset",
+        "dataset.source='json'",
+        f"dataset.data_files={data_files}",
+        "dataset.split='train'",
+    ]
+    return out
+
+
 def dummy_alpaca_dataset_config():
     data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
     out = [
-        "dataset._component_=torchtune.datasets.instruct_dataset",
+        "dataset._component_=torchtune.datasets.alpaca_dataset",
         "dataset.source='json'",
         f"dataset.data_files={data_files}",
-        "dataset.template=torchtune.data.AlpacaInstructTemplate",
         "dataset.split='train'",
     ]
     return out
@@ -73,7 +83,6 @@ def dummy_text_completion_alpaca_dataset_config():
         f"dataset.data_files={data_files}",
         "dataset.column='instruction'",
         "dataset.split='train[:10%]'",  # 10% of the dataset gets us 8 batches
-        "dataset.max_seq_len=64",
         "dataset.add_eos=False",
     ]
     return out
@@ -127,7 +136,6 @@ def lora_llama2_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
@@ -157,7 +165,6 @@ def lora_llama3_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> List[str]:
-    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison

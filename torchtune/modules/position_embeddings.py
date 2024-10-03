@@ -7,8 +7,7 @@
 from typing import Optional
 
 import torch
-
-from torch import nn, Tensor
+from torch import nn
 
 
 class RotaryPositionalEmbeddings(nn.Module):
@@ -25,7 +24,7 @@ class RotaryPositionalEmbeddings(nn.Module):
 
     Args:
         dim (int): Embedding dimension. This is usually set to the dim of each
-            head in the attention module computed as ````embed_dim`` // ``num_heads````
+            head in the attention module computed as ``embed_dim // num_heads``
         max_seq_len (int): Maximum expected sequence length for the
             model, if exceeded the cached freqs will be recomputed
         base (int): The base for the geometric progression used to compute
@@ -72,28 +71,27 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
-    def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Args:
-            x (Tensor): input tensor with shape
-                [b, s, n_h, h_d]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+            x (torch.Tensor): input tensor with shape
+                ``[b, s, n_h, h_d]``
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b, s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
 
         Returns:
-            Tensor: output tensor with RoPE applied
+            torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``
 
         Notation used for tensor shapes:
             - b: batch size
             - s: sequence length
             - n_h: num heads
             - h_d: head dim
-
-        TODO: The implementation below can be made more efficient
-        for inference.
         """
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)

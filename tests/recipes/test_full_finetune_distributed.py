@@ -41,6 +41,7 @@ class TestFullFinetuneDistributedRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
+            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -83,6 +84,7 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
         """.split()
         if fsdp_sharding_strategy:

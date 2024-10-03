@@ -6,7 +6,8 @@
 
 from typing import Any, List, Mapping, Optional, Tuple
 
-from torchtune.data import Message
+from torchtune.data import Message, PromptTemplate
+from torchtune.models.llama2._prompt_template import Llama2ChatTemplate
 from torchtune.modules.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
@@ -24,15 +25,25 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
     https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-2/ describes
     [INST][/INST] and <<SYS>><</SYS>> as special tokens but these are not registered
     as unique ids and are tokenized as normal text. When using this tokenizer on the
-    pre-trained model for inference, it is strongly encouraged to apply the
-    :class:`~torchtune.data.Llama2ChatFormat` to your data beforehand to add the
-    [INST] and <<SYS>> for optimal performance. For fine-tuning, this is not required.
+    pre-trained model for inference, the prompt template
+    :class:`~torchtune.models.llama2.Llama2ChatTemplate` is by default applied to your data
+    before tokenization to add the [INST] and <<SYS>> tags for optimal performance.
     For more details, see https://pytorch.org/torchtune/main/tutorials/chat.html#tokenizing-prompt-templates-special-tokens.
 
     Args:
         path (str): Path to pretrained SentencePiece tokenizer file.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
+        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
+            to add structured text around the actual messages. The structured text is used in three scenarios:
+
+            - Task-specific templates to gear models for a particular task that it will expect after training
+            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
+              tags in Llama2 and in Mistral
+            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+
+            The extra text will still get tokenized as normal text, not as special tokens.
+            Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
 
     Examples:
         >>> tokenizer = Llama2Tokenizer("/path/to/spm_model")
@@ -45,6 +56,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         self,
         path: str,
         max_seq_len: Optional[int] = None,
+        prompt_template: Optional[PromptTemplate] = Llama2ChatTemplate(),
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -55,6 +67,8 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         self.stop_tokens = [self.eos_id]
 
         self.max_seq_len = max_seq_len
+
+        self.prompt_template = prompt_template
 
     @property
     def eos_id(self):
@@ -95,6 +109,9 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
     def tokenize_messages(
         self,
         messages: List[Message],
+        *,
+        add_start_tokens: bool = True,
+        add_end_tokens: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -125,32 +142,42 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         Args:
             messages (List[Message]): A list of messages, each containing role, content,
                 and masked attributes.
+            add_start_tokens (bool): Whether to add BOS token to the beginning of the first message.
+                Default True.
+            add_end_tokens (bool): Whether to add EOS token to the end of the last message. Default True.
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
+        templated_messages = (
+            self.prompt_template(messages)
+            if self.prompt_template is not None
+            else messages
+        )
         return tokenize_messages_no_special_tokens(
             tokenizer=self,
-            messages=messages,
-            bos_id=self.bos_id,
-            eos_id=self.eos_id,
-            max_seq_len=self.max_seq_len,
+            messages=templated_messages,
+            bos_id=self.bos_id if add_start_tokens else None,
+            eos_id=self.eos_id if add_end_tokens else None,
         )
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
         """
         Apply ``tokenize_messages`` to the "messages" field in the sample.
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field containing
                 a List[Message] to tokenize
+            inference (bool): Whether the template is being used for inference or not.
 
         Returns:
             Mapping[str, Any]: The sample with added "tokens" and "mask" fields
                 and the "messages" field removed.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages)
+        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample

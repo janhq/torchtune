@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from torch import nn, Tensor
+from torch import nn
 
 
 class KVCache(nn.Module):
@@ -47,28 +47,62 @@ class KVCache(nn.Module):
         """Reset the cache to zero."""
         self.k_cache.zero_()
         self.v_cache.zero_()
+        self.size = 0
 
     def update(
-        self, input_pos: Tensor, k_val: Tensor, v_val: Tensor
-    ) -> Tuple[Tensor, Tensor]:
-        """Update KV cache with the new k_val, v_val and return the updated cache.
+        self, k_val: torch.Tensor, v_val: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update KV cache with the new ``k_val``, ``v_val`` and return the updated cache.
 
-        Raises an assertion error if ``input_pos`` is longer than the maximum sequence length.
+        Note:
+            When updating the KV cache, it is assumed that subsequent updates should update key-value
+            positions in consecutive sequence positions. If you wish to update cache values which have
+            already been filled, use ``.reset()``, which will reset the cache to the zero-th position.
+
+        Example:
+            >>> cache = KVCache(batch_size=2, max_seq_len=16, num_heads=4, head_dim=32, dtype=torch.bfloat16)
+            >>> keys, values = torch.ones((2, 4, 8, 32)), torch.ones((2, 4, 8, 32))
+            >>> cache.update(keys, values)
+            >>> # now positions 0 through 7 are filled
+            >>> cache.size
+            >>> 8
+            >>> keys, values = torch.ones((2, 4, 1, 32)), torch.ones((2, 4, 1, 32))
+            >>> cache.update(keys, values)
+            >>> # this will fill at position 8
+            >>> cache.size
+            >>> 9
 
         Args:
-            input_pos (Tensor): Current position tensor with shape [S]
-            k_val (Tensor): Current key tensor with shape [B, H, S, D]
-            v_val (Tensor): Current value tensor with shape [B, H, S, D]
+            k_val (torch.Tensor): Current key tensor with shape [B, H, S, D]
+            v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]
 
         Returns:
-            Tuple[Tensor, Tensor]: Updated KV cache with key first
+            Tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.
+
+        Raises:
+            ValueError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.
+            ValueError: if the batch size of the new key (or value) tensor is greater than the batch size
+                used during cache setup.
         """
-        assert input_pos.shape[0] == k_val.shape[2]
-        self.size = input_pos.max().item() + 1
+        bsz, _, seq_len, _ = k_val.shape
+        if bsz > self.k_cache.shape[0]:
+            raise ValueError(
+                f"The current cache has been setup with a batch size of {self.k_cache.shape[0]}"
+                f", but found new key tensors with batch size {k_val.shape[0]}!"
+            )
+
+        if (self.size + seq_len) > self.k_cache.shape[2]:
+            raise ValueError(
+                f"The current cache has been setup with a sequence length of {self.k_cache.shape[2]}"
+                f", but the cache has reached a sequence length of {(self.size + seq_len)}!"
+            )
+        cache_pos = torch.arange(self.size, self.size + seq_len, device=k_val.device)
+        self.size += seq_len
 
         k_out = self.k_cache
         v_out = self.v_cache
-        k_out[:, :, input_pos] = k_val
-        v_out[:, :, input_pos] = v_val
+
+        k_out[:, :, cache_pos] = k_val
+        v_out[:, :, cache_pos] = v_val
 
         return k_out, v_out
