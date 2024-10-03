@@ -3,17 +3,18 @@ import json
 import os
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol, Union
 
 import torch
 from safetensors.torch import save_file
-from torchtune import utils
+from torchtune import training
 
 from torchtune.models import convert_weights
-from torchtune.models.phi3 import phi3_hf_to_tune, phi3_tune_to_hf
-from torchtune.modules.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
-# /home/root/BachVD/torchtune/torchtune/training/checkpointing/_checkpointer.py
+from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to_hf
+from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
+from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
 from torchtune.training.checkpointing._utils import (
+    FormattedCheckpointFiles,
     get_path,
     ModelType,
     safe_torch_load,
@@ -79,7 +80,7 @@ class FullModelHFCheckpointerSaveSteps(FullModelHFCheckpointer):
             else None
         )
         self._resume_from_checkpoint = resume_from_checkpoint
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         self._recipe_checkpoint = None
