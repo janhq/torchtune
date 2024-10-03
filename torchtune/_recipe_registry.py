@@ -109,6 +109,7 @@ _ALL_RECIPES = [
             Config(name="llama3_1/8B_full", file_path="llama3_1/8B_full.yaml"),
             Config(name="llama3_2/1B_full", file_path="llama3_2/1B_full.yaml"),
             Config(name="llama3_2/3B_full", file_path="llama3_2/3B_full.yaml"),
+            Config(name="llama3_2_s/3B_full", file_path="jan-llama3-2-s/3B_full.yaml"),
             Config(name="llama3/8B_full", file_path="jan-llama3-s/8B_full.yaml"),
             Config(name="llama3/70B_full", file_path="llama3/70B_full.yaml"),
             Config(name="llama3_1/70B_full", file_path="llama3_1/70B_full.yaml"),
