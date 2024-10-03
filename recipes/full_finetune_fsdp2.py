@@ -322,6 +322,12 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
                 if isinstance(m, modules.TransformerDecoderLayer):
                     fully_shard(m, **fsdp_kwargs)
         fully_shard(model, **fsdp_kwargs)
+
+        with training.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
         missing, unexpected = training.load_from_full_model_state_dict(
