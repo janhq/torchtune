@@ -13,6 +13,8 @@ from torchtune.models.llama3._tokenizer import Llama3Tokenizer
 from torchtune.models.llama3._tokenizer_custom import Llama3STokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.data._prompt_templates import _get_prompt_template
 import logging
 
 """
@@ -20,7 +22,7 @@ Model builders build specific instantiations using component builders. For examp
 the llama3_8b model builder uses the llama3 component builder to create the
 Llama3 8B model.
 """
-def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None) -> Llama3Tokenizer:
+def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
 
@@ -34,7 +36,8 @@ def llama3_s_tokenizer(path: str, special_tokens_path: Optional[str] = None, max
         Llama3Tokenizer: Instantiation of the Llama3S tokenizer with sound tokens
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3STokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len)
+    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
+    return Llama3STokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
 def llama3_s_8b(path: str, special_tokens_path: Optional[str] = None) -> TransformerDecoder:
@@ -103,8 +106,8 @@ def llama3_70b() -> TransformerDecoder:
         rope_base=500000.0,
     )
 
-
-def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None) -> Llama3Tokenizer:
+ 
+def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
 
@@ -115,12 +118,17 @@ def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_s
             structured similarly. Default is None to use the canonical Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags.
     
     Returns:
         Llama3Tokenizer: Instantiation of the Llama3 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len)
+    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
+    return Llama3Tokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
 def lora_llama3_8b(
@@ -129,7 +137,9 @@ def lora_llama3_8b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3 8B model with LoRA enabled.
@@ -148,7 +158,10 @@ def lora_llama3_8b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
 
     Returns:
         TransformerDecoder: Instantiation of Llama3 8B model with LoRA applied
@@ -169,8 +182,9 @@ def lora_llama3_8b(
         rope_base=500000.0,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
 
 
@@ -180,7 +194,9 @@ def lora_llama3_70b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3 70B model with LoRA enabled.
@@ -199,7 +215,10 @@ def lora_llama3_70b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
         quantize_base (bool): Whether to quantize base model weights
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
 
     Returns:
         TransformerDecoder: Instantiation of Llama3 70B model with LoRA applied
@@ -220,8 +239,9 @@ def lora_llama3_70b(
         rope_base=500000.0,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
-        lora_dropout=0.05,
+        lora_dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
 
 

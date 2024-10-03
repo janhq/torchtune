@@ -78,6 +78,13 @@ torchtune tutorials.
    :link: tutorials/e2e_flow.html
    :tags: finetuning,quantization,inference,evals,llama2
 
+.. customcarditem::
+   :header: Distilling Llama3 8B into 1B
+   :card_description: Distilling Llama3 8B into 1B using Knowledge Distillation
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/llama_kd_tutorial.html
+   :tags: finetuning,llama3,kd
+
 .. customcardend::
 
 
@@ -100,16 +107,46 @@ torchtune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Finetuning Recipes
+   :hidden:
+
+   recipes/recipes_overview
+   recipes/lora_finetune_single_device
+   recipes/qat_distributed
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Basics
+   :hidden:
+
+   basics/datasets_overview
+   basics/chat_datasets
+   basics/instruct_datasets
+   basics/multimodal_datasets
+   basics/preference_datasets
+   basics/text_completion_datasets
+   basics/model_transforms
+   basics/messages
+   basics/message_transforms
+   basics/tokenizers
+   basics/prompt_templates
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
    tutorials/llama3
+   tutorials/chat
    tutorials/lora_finetune
    tutorials/qlora_finetune
    tutorials/qat_finetune
    tutorials/e2e_flow
    tutorials/datasets
-   tutorials/chat
+   tutorials/memory_optimizations
+   tutorials/llama_kd_tutorial
 
 .. toctree::
    :glob:
@@ -120,6 +157,7 @@ torchtune tutorials.
    deep_dives/checkpointer
    deep_dives/configs
    deep_dives/recipe_deepdive
+   deep_dives/comet_logging
    deep_dives/wandb_logging
 
 .. toctree::
@@ -131,6 +169,9 @@ torchtune tutorials.
    api_ref_config
    api_ref_data
    api_ref_datasets
+   api_ref_generation
    api_ref_models
    api_ref_modules
+   api_ref_rlhf
+   api_ref_training
    api_ref_utilities

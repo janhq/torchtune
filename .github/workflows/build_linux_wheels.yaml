@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   generate-matrix:
+    if: github.repository_owner == 'pytorch'
     uses: pytorch/test-infra/.github/workflows/generate_binary_build_matrix.yml@main
     with:
       package-type: wheel
@@ -40,4 +41,6 @@ jobs:
       pre-script: .github/scripts/pre_build_script.sh
       trigger-event: ${{ github.event_name }}
       build-platform: 'python-build-package'
-      pip-install-torch-extra-args: torchvision
+      pip-install-torch-extra-args:
+        torchvision
+        torchao

@@ -10,6 +10,7 @@ from torchtune.modules.transforms import VisionCrossAttentionMask
 
 
 IMAGE_TOKEN_ID = 1
+MAX_NUM_TILES = 4
 
 
 class TestVisionCrossAttentionMask:
@@ -53,6 +54,7 @@ class TestVisionCrossAttentionMask:
             tile_size=tile_size,
             patch_size=patch_size,
             image_token_id=IMAGE_TOKEN_ID,
+            max_num_tiles=MAX_NUM_TILES,
         )
 
     def test_get_image_attention_intervals(self, cross_attn_mask_transform, tokens):
@@ -61,7 +63,7 @@ class TestVisionCrossAttentionMask:
         assert actual == expected
 
     def test_call(self, cross_attn_mask_transform, tokens, images, image_num_tokens):
-        sample = {"tokens": tokens, "images": images}
+        sample = {"tokens": tokens, "encoder_input": {"images": images}}
         dummy_kwargs = {"hello": 8}
         sample.update(dummy_kwargs)
         actual = cross_attn_mask_transform(sample)
@@ -74,7 +76,28 @@ class TestVisionCrossAttentionMask:
         expected[2][6:9, :] = True
         for i in range(len(images)):
             torch.testing.assert_close(actual["encoder_mask"][i], expected[i])
-            torch.testing.assert_close(actual["images"][i], images[i])
+            torch.testing.assert_close(actual["encoder_input"]["images"][i], images[i])
+
+        assert actual["tokens"] == tokens
+        assert actual["hello"] == dummy_kwargs["hello"]
+
+    def test_inference_call(
+        self, cross_attn_mask_transform, tokens, images, image_num_tokens
+    ):
+        sample = {"tokens": tokens, "encoder_input": {"images": images}}
+        dummy_kwargs = {"hello": 8}
+        sample.update(dummy_kwargs)
+        actual = cross_attn_mask_transform(sample, inference=True)
+        expected = [
+            torch.zeros(len(tokens), image_num_tokens * 2, dtype=torch.bool)
+            for _ in range(len(images))
+        ]
+        expected[0][2:6, :image_num_tokens] = True
+        expected[1][3:6, :image_num_tokens] = True
+        expected[2][6:9, :image_num_tokens] = True
+        for i in range(len(images)):
+            torch.testing.assert_close(actual["encoder_mask"][i], expected[i])
+            torch.testing.assert_close(actual["encoder_input"]["images"][i], images[i])
 
         assert actual["tokens"] == tokens
         assert actual["hello"] == dummy_kwargs["hello"]

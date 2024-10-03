@@ -4,13 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import pytest
 from tests.test_utils import assert_dialogue_equal, MESSAGE_SAMPLE
-from torchtune.data import (
+from torchtune.data._messages import Message
+from torchtune.data._prompt_templates import (
+    _get_prompt_template,
     ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
-    Message,
+    PromptTemplate,
     SummarizeTemplate,
 )
+from torchtune.models.llama2 import Llama2ChatTemplate
 
 
 class TestChatMLTemplate:
@@ -35,13 +39,23 @@ class TestChatMLTemplate:
             role="assistant",
             content="<|im_start|>assistant\nA father in Russia allowed his 8-year-old child to drive his car on an "
             "icy road and recorded the event. The child appeared to be handling the situation well, "
-            "showcasing their driving skills despite the challenging conditions.<|im_end|>",
+            "showcasing their driving skills despite the challenging conditions.<|im_end|>\n",
         ),
     ]
 
     def test_format(self):
         actual = ChatMLTemplate()(MESSAGE_SAMPLE)
         assert_dialogue_equal(actual, self.expected_dialogue)
+
+    def test_format_generation(self):
+        messages_generation = MESSAGE_SAMPLE[:2] + [
+            Message(role="assistant", content="")
+        ]
+        expected = self.expected_dialogue[:2] + [
+            Message(role="assistant", content="<|im_start|>assistant\n")
+        ]
+        actual = ChatMLTemplate()(messages_generation)
+        assert_dialogue_equal(actual, expected)
 
 
 class TestGrammarErrorCorrectionTemplate:
@@ -168,3 +182,19 @@ class TestSummarizeTemplate:
         for sample, expected_prompt in zip(self.samples, self.expected_prompts):
             actual = self.template(sample["messages"])
             assert_dialogue_equal(actual, expected_prompt)
+
+
+def test_get_prompt_template():
+    template = _get_prompt_template("torchtune.models.llama2.Llama2ChatTemplate")
+    assert isinstance(template, Llama2ChatTemplate)
+
+    template = _get_prompt_template({"user": ("1", "2"), "assistant": ("3", "4")})
+    assert isinstance(template, PromptTemplate)
+    assert template.template["user"] == ("1", "2")
+    assert template.template["assistant"] == ("3", "4")
+
+    with pytest.raises(
+        ValueError,
+        match="Prompt template must be a dotpath string or dictionary with custom template",
+    ):
+        _ = _get_prompt_template(["user", "assistant"])

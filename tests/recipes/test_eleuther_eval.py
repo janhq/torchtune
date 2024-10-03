@@ -19,25 +19,40 @@ from tests.test_utils import CKPT_MODEL_PATHS
 
 
 class TestEleutherEval:
+    @pytest.mark.parametrize(
+        "eval_name, expected_acc, bsz",
+        [
+            ("truthfulqa_gen", 0.1, 4),
+            ("truthfulqa_gen", 0.1, 1),
+            ("truthfulqa_mc2", 0.4, 4),
+        ],
+    )
     @pytest.mark.integration_test
-    def test_torchtune_checkpoint_eval_results(self, capsys, monkeypatch, tmpdir):
+    def test_torchtune_checkpoint_eval_results(
+        self, caplog, monkeypatch, tmpdir, eval_name, expected_acc, bsz
+    ):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
+        # explicitly setting limit to an odd number here to ensure generation tasks
+        # work with KV-cacheing + bsz > 1 - we'll receive batches of size 4, 4, 3
         cmd = f"""
         tune run eleuther_eval \
             --config eleuther_evaluation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
-            limit=10 \
+            tokenizer.prompt_template=null \
+            limit=11 \
             dtype=fp32 \
             device=cpu \
+            tasks=[{eval_name}]\
+            batch_size={bsz} \
         """.split()
 
         model_config = llama2_test_config()
@@ -47,17 +62,17 @@ class TestEleutherEval:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        out = capsys.readouterr().out
+        out = caplog.text
 
         # v0.4.2 format
         # |    Tasks     |Version|Filter|n-shot|Metric|Value |   |Stderr|
         # |--------------|------:|------|-----:|------|-----:|---|-----:|
-        # |truthfulqa_mc2|      2|none  |     0|acc   |0.3469|±  |0.1444|
+        # |truthfulqa_mc2|      2|none  |     0|acc   |0.4497|±  |0.1067|
 
         # v0.4.3 format
         # |    Tasks     |Version|Filter|n-shot|Metric|   |Value |   |Stderr|
         # |--------------|------:|------|-----:|------|---|-----:|---|-----:|
-        # |truthfulqa_mc2|      2|none  |     0|acc   |↑  |0.3469|±  |0.1444|
+        # |truthfulqa_mc2|      2|none  |     0|acc   |↑  |0.4497|±  |0.1067|
 
         # The below RegEx command will pick up both formats
         search_results = re.search(
@@ -65,7 +80,7 @@ class TestEleutherEval:
         )
         assert search_results is not None
         acc_result = float(search_results.group(1))
-        assert math.isclose(acc_result, 0.3, abs_tol=0.05)
+        assert math.isclose(acc_result, expected_acc, abs_tol=0.05)
 
     @pytest.fixture
     def hide_available_pkg(self, monkeypatch):
@@ -80,22 +95,23 @@ class TestEleutherEval:
 
     @pytest.mark.integration_test
     @pytest.mark.usefixtures("hide_available_pkg")
-    def test_eval_recipe_errors_without_lm_eval(self, caplog, monkeypatch, tmpdir):
+    def test_eval_recipe_errors_without_lm_eval(self, capsys, monkeypatch, tmpdir):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
         tune run eleuther_eval \
-            --config eleuther_evalation \
+            --config eleuther_evaluation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
-            limit=10 \
+            tokenizer.prompt_template=null \
+            limit=1 \
             dtype=fp32 \
             device=cpu \
         """.split()
@@ -104,5 +120,17 @@ class TestEleutherEval:
         with pytest.raises(SystemExit, match="1"):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        err_log = caplog.messages[-1]
-        assert "Recipe requires EleutherAI Eval Harness v0.4" in err_log
+        printed_err = capsys.readouterr().out
+        assert (
+            "You must install the EleutherAI Eval Harness to run this recipe"
+            in printed_err
+        )
+
+    @pytest.mark.integration_test
+    def test_eval_recipe_errors_with_generate_until_and_mc_tasks(
+        self, caplog, capsys, monkeypatch, tmpdir
+    ):
+        # We can't currently specify both generate_until and mc_tasks in the same run
+        # b/c the KV cache won't be reset and the result will be different. This test
+        # catches that error
+        pass
