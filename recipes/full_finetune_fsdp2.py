@@ -277,7 +277,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         # self.global_step += self.epochs_run * self._steps_per_epoch
         # since we are resuming from a checkpoint, we need to update the global step
-        self.global_step = ckpt_dict[utils.STEPS_KEY] if self._resume_from_checkpoint else 0
+        self.global_step = ckpt_dict[training.STEPS_KEY] if self._resume_from_checkpoint else 0
         # calculate the local step within the epoch
         self.local_step = self.global_step % self._steps_per_epoch if self._resume_from_checkpoint else 0
         # Learning rate scheduler can only be set up after number of steps
