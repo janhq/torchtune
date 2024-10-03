@@ -2,7 +2,7 @@ model:
   _component_: torchtune.models.llama3_1.llama3_1_s_8b
 
 checkpointer:
-    _component_: torchtune.utils.FullModelHFCheckpointer
+    _component_: torchtune.training.FullModelHFCheckpointer
 
     # directory with the checkpoint files
     # this should match the output_dir specified during
