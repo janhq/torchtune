@@ -30,6 +30,9 @@ dependencies = [
     # Multimodal
     "Pillow>=9.4.0",
 
+    # Torch
+    "torchao",
+
 ]
 dynamic = ["version"]
 
