@@ -20,13 +20,14 @@
 tokenizer:
   _component_: torchtune.models.llama3.llama3_s_tokenizer
   path: ../model_zoo/tokenizer.model
+  max_seq_len: 4096
 
 # Dataset
 dataset:
   _component_: torchtune.datasets.chat_dataset
   source: homebrewltd/instruction-speech-WhisperVQ-with-transcription-data-1027k
+  conversation_column: conversations
   conversation_style: openai
-  max_seq_len: 2048
   split: train
   train_on_input: True
 
@@ -38,15 +39,19 @@ model:
   # path: model_zoo/Llama3.1_s_8b_init
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointerSaveSteps
-  checkpoint_dir: ../model_zoo/llama3-1-s-CP-2000
-  checkpoint_files: [
-    pytorch_model.bin,
-  ]
+  checkpoint_dir: ../model_zoo/llama3.1-s-whispervq-init
+  checkpoint_files:
+    [
+      model-00001-of-00004.safetensors,
+      model-00002-of-00004.safetensors,
+      model-00003-of-00004.safetensors,
+      model-00004-of-00004.safetensors,
+    ]
   recipe_checkpoint: null
   output_dir: ../model_zoo/llama3-1-s
   model_type: LLAMA3
 resume_from_checkpoint: False
-save_every_n_steps: 500
+save_every_n_steps: 1000
 max_checkpoints: 3
 # Fine-tuning arguments
 batch_size: 2
@@ -77,8 +82,7 @@ dtype: bf16
 # Memory management
 enable_activation_checkpointing: True
 memory_efficient_fsdp_wrap: True
-ac_mode: 'selective'
-
+ac_mode: "selective"
 
 # Logging
 metric_logger:

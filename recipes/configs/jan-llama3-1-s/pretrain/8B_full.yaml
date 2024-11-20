@@ -19,52 +19,54 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_s_tokenizer
-  path: ../model_zoo_llama3.2/tokenizer.model
-  max_seq_len: 4096
+  path: ../model_zoo/tokenizer.model
+  max_seq_len: 512
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.chat_dataset
-  source: homebrewltd/mixed-instruction-speech-whispervq-v3-full-phase2-3
-  conversation_column: conversations
-  conversation_style: openai
+  _component_: torchtune.datasets.sound_completion_dataset
+  source: jan-hq/raw_audio_with_audio_tokens_for_pretraining_using_Whisper_VQ
+  max_seq_len: 512
   split: train
-  train_on_input: True
+  column: text
 
 seed: 42
-shuffle: False
+shuffle: True
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3_2.llama3_2_s_3b
+  _component_: torchtune.models.llama3_1.llama3_1_s_8b
   # path: model_zoo/Llama3.1_s_8b_init
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointerSaveSteps
-  checkpoint_dir: ../model_zoo_llama3.2/llama3.2-s-3b-base
-  checkpoint_files: [
-    model-00001-of-00002.safetensors,
-    model-00002-of-00002.safetensors,
-  ]
+  checkpoint_dir: ../model_zoo/llama3.1-s-whispervq-init
+  checkpoint_files:
+    [
+      model-00001-of-00004.safetensors,
+      model-00002-of-00004.safetensors,
+      model-00003-of-00004.safetensors,
+      model-00004-of-00004.safetensors,
+    ]
   recipe_checkpoint: null
-  output_dir: ../model_zoo_llama3.2/llama3.2-3B-s-instruct
-  model_type: LLAMA3_2
+  output_dir: ../model_zoo/llama3-1-s-base
+  model_type: LLAMA3
 resume_from_checkpoint: False
 save_every_n_steps: 1000
 max_checkpoints: 3
 # Fine-tuning arguments
-batch_size: 3
+batch_size: 12
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 12
+gradient_accumulation_steps: 4
 compile: False
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW #change this to use adam_mini: torchtune.modules.optimizer.Adam_mini
-  weight_decay: 0.005
-  lr: 7e-5
+  weight_decay: 0.01
+  lr: 2e-4
   fused: True
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
-  num_warmup_steps: 62
+  num_warmup_steps: 50
 
 loss:
   _component_: torch.nn.CrossEntropyLoss
@@ -79,13 +81,12 @@ dtype: bf16
 # Memory management
 enable_activation_checkpointing: True
 memory_efficient_fsdp_wrap: True
-ac_mode: 'selective'
-
+ac_mode: "selective"
 
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: ../model_zoo_llama3.2/llama3.2-3B-s-instruct-log/
+output_dir: ../model_zoo/Llama3-s-base-log/
 log_every_n_steps: 1
 log_peak_memory_stats: False
