@@ -462,10 +462,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
+        adapter_params = get_adapter_params(model)
+        embed_lm_head_params = get_module_params(model)
+        # merge 2 dicts
+        all_params = {**adapter_params, **embed_lm_head_params}
 
-        set_trainable_params(model, get_adapter_params(model))
-        
-        set_trainable_params(model, get_module_params(model))
+        set_trainable_params(model, all_params)
 
         total_params, trainable_params, trainable_param_names = get_trainable_params(model)
         utils.log_rank_zero(
@@ -1012,8 +1014,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
                     # for debugging purposes, break after 5 steps
-                    if self.global_step == 10:
-                        break
+                    # if self.global_step == 10:
+                    #     break
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
