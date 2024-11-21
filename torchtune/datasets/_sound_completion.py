@@ -60,7 +60,11 @@ class SoundCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column]
-        tokens = self._tokenizer.encode_sound_tokens(prompt, add_start=True, add_end=True, add_bos=True, add_eos=True)
+        # check if self._tokenizer is a class name Llama3STokenizer
+        if self._tokenizer.__class__.__name__ == "Llama3STokenizer":
+            tokens = self._tokenizer.encode_sound_tokens(prompt, add_start=True, add_end=True, add_bos=True, add_eos=True)
+        else:
+            tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=self.add_eos)
 
         # Truncate if needed, but don't coerce EOS id
         if self.max_seq_len is not None:

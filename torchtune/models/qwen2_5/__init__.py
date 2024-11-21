@@ -12,6 +12,7 @@ from ._model_builders import (
     lora_qwen2_5_1_5b_instruct,
     lora_qwen2_5_32b_base,
     lora_qwen2_5_32b_instruct,
+    lora_qwen2_5_32b_instruct_s,
     lora_qwen2_5_3b,
     lora_qwen2_5_72b_base,
     lora_qwen2_5_72b_instruct,
@@ -24,12 +25,14 @@ from ._model_builders import (
     qwen2_5_1_5b_instruct,
     qwen2_5_32b_base,
     qwen2_5_32b_instruct,
+    qwen2_5_32b_instruct_s,
     qwen2_5_3b,
     qwen2_5_72b_base,
     qwen2_5_72b_instruct,
     qwen2_5_7b_base,
     qwen2_5_7b_instruct,
     qwen2_5_tokenizer,
+    qwen2_5_s_tokenizer,
 )
 
 __all__ = [
@@ -40,6 +43,7 @@ __all__ = [
     "lora_qwen2_5_1_5b_instruct",
     "lora_qwen2_5_32b_base",
     "lora_qwen2_5_32b_instruct",
+    "lora_qwen2_5_32b_instruct_s",
     "lora_qwen2_5_3b",
     "lora_qwen2_5_72b_base",
     "lora_qwen2_5_72b_instruct",
@@ -52,10 +56,12 @@ __all__ = [
     "qwen2_5_1_5b_instruct",
     "qwen2_5_32b_base",
     "qwen2_5_32b_instruct",
+    "qwen2_5_32b_instruct_s",
     "qwen2_5_3b",
     "qwen2_5_72b_base",
     "qwen2_5_72b_instruct",
     "qwen2_5_7b_base",
     "qwen2_5_7b_instruct",
     "qwen2_5_tokenizer",
+    "qwen2_5_s_tokenizer",
 ]

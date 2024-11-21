@@ -179,6 +179,21 @@ def tokenize_messages_no_special_tokens(
 
     return tokenized_messages, mask
 
+def parse_hf_bpe_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
+    """
+    Parse the ``tokenizer.json`` file from a Hugging Face model to extract the
+    special token str to id mapping.
+
+    Args:
+        tokenizer_json_path (str): Path to the ``tokenizer.json`` file.
+
+    Returns:
+        Dict[str, int]: The special token str to id mapping.
+    """
+    with open(tokenizer_json_path, "r") as f:
+        tokenizer_json = json.load(f)
+
+    return {k: v for k, v in tokenizer_json.items()} 
 
 def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
     """
