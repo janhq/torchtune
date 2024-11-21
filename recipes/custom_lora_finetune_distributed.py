@@ -26,6 +26,8 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
+    get_module_params,
+    get_trainable_params,
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
@@ -42,6 +44,7 @@ import itertools
 import os
 import re   
 from pathlib import Path
+import json
 log = utils.get_logger("DEBUG")
 
 
@@ -461,7 +464,22 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             model = config.instantiate(cfg_model)
 
         set_trainable_params(model, get_adapter_params(model))
+        
+        set_trainable_params(model, get_module_params(model))
 
+        total_params, trainable_params, trainable_param_names = get_trainable_params(model)
+        utils.log_rank_zero(
+            log,
+            f"Total trainable params: {total_params}, Trainable params: {trainable_params}",
+        )
+        # save trainable param names to json
+        with open("trainable_param_names.json", "w") as f:
+            json.dump(trainable_param_names, f)
+        # 
+        # utils.log_rank_zero(
+        #     log,
+        #     f"model architecture: {model.named_modules()}",  
+        # )
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
@@ -1027,7 +1045,7 @@ def recipe_main(cfg: DictConfig) -> None:
         training.set_torch_num_threads()
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
-    config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
+    config.log_config(recipe_name="CustomLoRAFinetuneRecipeDistributed", cfg=cfg)
 
     recipe = LoRAFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)

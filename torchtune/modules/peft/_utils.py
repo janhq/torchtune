@@ -61,6 +61,35 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
             ), f"Adapter params {current_adapter_params} not converted"
     return adapter_params
 
+def get_module_params(model: nn.Module) -> Dict[str, nn.Parameter]:
+    """
+    Returns adapter parameters and embedding/lm_head parameters from a model.
+    """
+    params = {}
+    
+    for k, v in model.named_modules():
+        # Add non-LoRA embedding and lm_head params
+        if isinstance(v, nn.Embedding) or k == "output":
+            for n, p in v.named_parameters(recurse=True):
+                full_key = f"{k}.{n}" if k else n
+                params[full_key] = p
+                
+    return params
+def get_trainable_params(model: nn.Module) -> None:
+    """
+    Prints number of trainable parameters in a model.
+    """
+    total_params = 0
+    trainable_params = 0
+    trainable_param_names = []
+    
+    for name, param in model.named_parameters():
+        num_params = param.numel()
+        total_params += num_params
+        if param.requires_grad:
+            trainable_params += num_params
+            trainable_param_names.append(name)
+    return total_params, trainable_params, trainable_param_names
 
 def set_trainable_params(
     model: nn.Module, adapter_params: Union[Dict[str, Any], Set]
