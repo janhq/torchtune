@@ -28,6 +28,7 @@ tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_s_tokenizer
   path: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-whispervq-init/vocab.json
   merges_file: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-whispervq-init/merges.txt
+  special_tokens_path: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-whispervq-init/added_tokens.json
   max_seq_len: 512
 
 checkpointer:
