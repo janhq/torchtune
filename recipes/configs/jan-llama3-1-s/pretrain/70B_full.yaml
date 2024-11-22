@@ -1,0 +1,118 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a Llama3 8B Instruct model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# Single device full finetuning requires more memory optimizations. It's
+# best to use 8B_full_single_device.yaml for those cases
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_s_tokenizer
+  path: ../model_zoo/tokenizer.model
+  max_seq_len: 4096
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.chat_dataset
+  source: jan-hq/raw-speech-whispervq-v2-merged
+  conversation_column: conversations
+  conversation_style: openai
+  split: train
+  train_on_input: True
+
+seed: 42
+shuffle: True
+# Model Arguments
+model:
+  _component_: torchtune.models.llama3_1.llama3_1_s_70b
+  # path: model_zoo/Llama3.1_s_8b_init
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointerSaveSteps
+  checkpoint_dir: ../model_zoo/llama3.1-s-whispervq-init
+  checkpoint_files: [
+    model-00001-of-00030.safetensors,
+    model-00002-of-00030.safetensors,
+    model-00003-of-00030.safetensors,
+    model-00004-of-00030.safetensors,
+    model-00005-of-00030.safetensors,
+    model-00006-of-00030.safetensors,
+    model-00007-of-00030.safetensors,
+    model-00008-of-00030.safetensors,
+    model-00009-of-00030.safetensors,
+    model-00010-of-00030.safetensors,
+    model-00011-of-00030.safetensors,
+    model-00012-of-00030.safetensors,
+    model-00013-of-00030.safetensors,
+    model-00014-of-00030.safetensors,
+    model-00015-of-00030.safetensors,
+    model-00016-of-00030.safetensors,
+    model-00017-of-00030.safetensors,
+    model-00018-of-00030.safetensors,
+    model-00019-of-00030.safetensors,
+    model-00020-of-00030.safetensors,
+    model-00021-of-00030.safetensors,
+    model-00022-of-00030.safetensors,
+    model-00023-of-00030.safetensors,
+    model-00024-of-00030.safetensors,
+    model-00025-of-00030.safetensors,
+    model-00026-of-00030.safetensors,
+    model-00027-of-00030.safetensors,
+    model-00028-of-00030.safetensors,
+    model-00029-of-00030.safetensors,
+    model-00030-of-00030.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: ../model_zoo/llama3-1-s-instruct
+  model_type: LLAMA3
+resume_from_checkpoint: False
+save_every_n_steps: 1000
+max_checkpoints: 3
+# Fine-tuning arguments
+batch_size: 
+epochs: 1
+max_steps_per_epoch: null
+gradient_accumulation_steps: 
+compile: False
+# Optimizer and Scheduler
+optimizer:
+  _component_: torch.optim.AdamW #change this to use adam_mini: torchtune.modules.optimizer.Adam_mini
+  weight_decay: 0.005
+  lr: 7e-5
+  fused: True
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: #5-10% of total_step
+
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+
+fsdp:
+  cpu_offload: False
+
+# Training env
+device: cuda
+dtype: bf16
+
+# Memory management
+enable_activation_checkpointing: True
+memory_efficient_fsdp_wrap: True
+ac_mode: "selective"
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: ../model_zoo/Llama3-s-instruct-log/
+log_every_n_steps: 1
+log_peak_memory_stats: False

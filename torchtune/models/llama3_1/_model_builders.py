@@ -36,6 +36,25 @@ def llama3_1_s_8b() -> TransformerDecoder:
         norm_eps=1e-5,
         rope_base=500_000,
     )
+def llama3_1_s_70b() -> TransformerDecoder:
+    """
+    Builder for creating a Llama3.1 model initialized w/ the default 70B parameter values.
+
+    Returns:
+        TransformerDecoder: Instantiation of Llama3.1 70B model
+    """
+    return llama3_1(
+        vocab_size=128_771,
+        num_layers=80,
+        num_heads=64,
+        num_kv_heads=8,
+        embed_dim=8192,
+        max_seq_len=131072,
+        intermediate_dim=28672,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+        rope_base=500_000,
+    )
 
 def llama3_1_8b() -> TransformerDecoder:
     """
