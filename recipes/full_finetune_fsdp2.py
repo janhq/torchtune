@@ -30,12 +30,13 @@ from torchtune.training.lr_schedulers import get_lr
 from tqdm import tqdm
 import os
 import re   
+import itertools
 from pathlib import Path
 
 log = utils.get_logger("DEBUG")
 
 
-class FullFinetuneRecipeDistributed(FTRecipeInterface):
+class FullFinetuneRecipeFSDP2(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
     distributed training and can be run on a single node (1 to 8 GPUs).
@@ -773,14 +774,23 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = {}
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.get_full_model_state_dict(
-            self._model,
+        cpu_state_dict = training.gather_cpu_state_dict(
+            self._model.state_dict(),
             self._is_rank_zero,
+            device=self._device,
         )
-        opt_state_dict = training.get_full_optimizer_state_dict(
-            self._optimizer,
-            self._is_rank_zero,
-        )
+        if not self._optimizer_in_bwd:
+            opt_state_dict = training.get_full_optimizer_state_dict(
+                self._optimizer,
+                self._is_rank_zero,
+                device=self._device,
+            )
+        else:
+            opt_state_dict = {}
+            for param, opt in self._optim_ckpt_wrapper.optim_map.items():
+                opt_state_dict[param] = training.get_full_optimizer_state_dict(
+                    opt, self._is_rank_zero, device=self._device
+                )
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
@@ -806,6 +816,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 step=self.global_step,
                 intermediate_checkpoint=True,
             )
+        torch.distributed.barrier()
     def cleanup_old_checkpoints(self):
         _output_dir = self._checkpointer._output_dir
         if self._is_rank_zero:
@@ -851,7 +862,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-
+            pbar = tqdm(
+                total=self._steps_per_epoch,
+                disable=not (rank == 0),
+                initial=self.local_step,
+            )
             start_batch = self.global_step % len(self._dataloader) if self._resume_from_checkpoint else 0
             for idx, batch in itertools.islice(enumerate(self._dataloader), start_batch, None):
                 if (
