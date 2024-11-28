@@ -27,7 +27,7 @@ tokenizer:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointerSaveSteps
-  checkpoint_dir: ../model_zoo_qwen2.5/Ichigo-Qwen2.5-32B-s-init
+  checkpoint_dir: ../model_zoo_qwen2.5/Ichigo-Qwen2.5-0.5B-s-init
   checkpoint_files: [model.safetensors]
   recipe_checkpoint: null
   output_dir: ../model_zoo_qwen2.5/Qwen2.5-0.5B-T2S
@@ -42,15 +42,15 @@ dataset:
   conversation_style: openai
   split: train
   train_on_input: True
-seed: 42
+seed: 48
 shuffle: False
 save_every_n_steps: 1000
 max_checkpoints: 3
 # Fine-tuning arguments
-batch_size: 16
+batch_size: 42
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 1
 compile: False
 clip_grad_norm: 1.0
 # Optimizer and Scheduler
@@ -58,10 +58,10 @@ optimizer:
   _component_: torch.optim.AdamW
   fused: True
   weight_decay: 0.01
-  lr: 3e-4
+  lr: 1e-3
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: 48
+  num_warmup_steps: 200
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
@@ -78,7 +78,7 @@ log_peak_memory_stats: False
 # Environment
 device: cuda
 dtype: bf16
-enable_activation_checkpointing: True  # True reduces memory
+enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 
 # Show case the usage of pytorch profiler
