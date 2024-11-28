@@ -26,14 +26,14 @@ model:
 
 tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_s_tokenizer
-  path: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-whispervq-init/vocab.json
-  merges_file: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-whispervq-init/merges.txt
-  special_tokens_path: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-whispervq-init/added_tokens.json
+  path: ../model_zoo_qwen2.5/Ichigo-Qwen2.5-32B-s-base/vocab.json
+  merges_file: ../model_zoo_qwen2.5/Ichigo-Qwen2.5-32B-s-base/merges.txt
+  special_tokens_path: ../model_zoo_qwen2.5/Ichigo-Qwen2.5-32B-s-base/added_tokens.json
   max_seq_len: 1024
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointerSaveSteps
-  checkpoint_dir: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-whispervq-init
+  checkpoint_dir: ../model_zoo_qwen2.5/Ichigo-Qwen2.5-32B-s-base
   checkpoint_files: [
     model-00001-of-00014.safetensors,
     model-00002-of-00014.safetensors,
@@ -51,26 +51,27 @@ checkpointer:
     model-00014-of-00014.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-s-lora-base
+  output_dir: ../model_zoo_qwen2.5/Ichigo-Qwen2.5-32B-s-instruct
   model_type: QWEN2
 resume_from_checkpoint: False
 
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.chat_dataset
-  source: 
-  max_seq_len: 1024
+  source: homebrewltd/instruction-speech-whispervq-v2-prompt-transcribe
+  conversation_column: conversations
+  conversation_style: openai
   split: train
-  column: text
+  train_on_input: True
 seed: 42
-shuffle: True
+shuffle: False
 save_every_n_steps: 1000
 max_checkpoints: 3
 # Fine-tuning arguments
-batch_size: 4
+batch_size: 8
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 4
 compile: False
 clip_grad_norm: 1.0
 # Optimizer and Scheduler
@@ -81,14 +82,14 @@ optimizer:
   lr: 3e-4
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: 20
+  num_warmup_steps: 48
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 
 # Logging
-output_dir: ../model_zoo_qwen2.5/Qwen2_5-32B-Instruct-s-lora-log
+output_dir: ../model_zoo_qwen2.5/Ichigo-Qwen2.5-32B-s-instruct-log
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
@@ -99,7 +100,7 @@ log_peak_memory_stats: False
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: True  # True reduces memory
-enable_activation_offloading: True  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
