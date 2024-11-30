@@ -44,6 +44,36 @@ def qwen2_5_0_5b_s() -> TransformerDecoder:
         rope_base=1000000.0,
         tie_word_embeddings=True,
     )
+
+def qwen2_5_1_5b_instruct_s() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen2.5 instruct model initialized w/ the default 1.5B parameter values
+    from https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen2.5 1.5B instruct model
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen2.5 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
+
+    Note:
+        Qwen2.5 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
+    """
+    return qwen2(
+        vocab_size=152_192,
+        num_layers=28,
+        num_heads=12,
+        num_kv_heads=2,
+        embed_dim=1536,
+        intermediate_dim=8960,
+        max_seq_len=32768,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        tie_word_embeddings=True,
+    )
+
 def lora_qwen2_5_32b_instruct_s(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
