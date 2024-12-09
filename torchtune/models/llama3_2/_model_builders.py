@@ -36,6 +36,27 @@ def llama3_2_s_3b() -> TransformerDecoder:
         rope_base=500_000,
         scale_factor=32,
     )
+def llama3_2_s_compress_1b() -> TransformerDecoder:
+    """
+    Builder for creating a Llama3.2 model initialized w/ the default 1b parameter values.
+    
+    Returns:
+        TransformerDecoder: Instantiation of Llama3.2 1B model
+    """
+    return llama3_2(
+        vocab_size=128_869,
+        num_layers=16,
+        num_heads=32,
+        num_kv_heads=8,
+        embed_dim=2048,
+        max_seq_len=131072,
+        intermediate_dim=8192,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+        rope_base=500_000,
+        scale_factor=32,
+    )
+
 def llama3_2_s_1b() -> TransformerDecoder:
     """
     Builder for creating a Llama3.2 model initialized w/ the default 1b parameter values.

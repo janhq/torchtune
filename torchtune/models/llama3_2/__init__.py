@@ -15,6 +15,7 @@ from ._model_builders import (  # noqa
     lora_llama3_2_3b,
     qlora_llama3_2_1b,
     qlora_llama3_2_3b,
+    llama3_2_s_compress_1b,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "lora_llama3_2_3b",
     "qlora_llama3_2_1b",
     "qlora_llama3_2_3b",
+    "llama3_2_s_compress_1b",
 ]
