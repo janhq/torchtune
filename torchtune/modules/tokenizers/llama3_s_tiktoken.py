@@ -28,6 +28,7 @@ class CustomTikTokenTokenizer(TikTokenBaseTokenizer):
         }
         DURATION_TOKENS = {
             f"{duration_tokens[i]}".encode("utf8"): old_vocab_size + len(sound_tokens) + i
+            for i in range(len(duration_tokens))
         }
        
         mergeable_ranks = {**mergeable_ranks, **SOUND_TOKENS, **DURATION_TOKENS}
