@@ -11,6 +11,7 @@ from ._utils import (
     BaseTokenizer,
     ModelTokenizer,
     parse_hf_tokenizer_json,
+    parse_hf_bpe_tokenizer_json,
     tokenize_messages_no_special_tokens,
 )
 
@@ -22,4 +23,5 @@ __all__ = [
     "BaseTokenizer",
     "tokenize_messages_no_special_tokens",
     "parse_hf_tokenizer_json",
+    "parse_hf_bpe_tokenizer_json",
 ]

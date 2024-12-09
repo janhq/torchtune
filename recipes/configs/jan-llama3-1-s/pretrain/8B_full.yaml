@@ -25,10 +25,11 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.sound_completion_dataset
-  source: jan-hq/raw_audio_with_audio_tokens_for_pretraining_using_Whisper_VQ
+  source: homebrewltd/raw-speech-whispervq-v2
   max_seq_len: 512
   split: train
   column: text
+  subset: english
 
 seed: 42
 shuffle: True
@@ -65,7 +66,7 @@ optimizer:
   lr: 2e-4
   fused: True
 lr_scheduler:
-  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 50
 
 loss:

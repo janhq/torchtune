@@ -84,9 +84,9 @@ class Llama3STokenizer(Llama3Tokenizer):
                     prefix = "<|reserved_special_token_69|>"
                     item["content"] = item["content"][len(prefix):]
                     tokenized_body += [128077]
-                    tokenized_body += [self.sound_start_id]
-                    tokenized_body += self.tt_model.encode_sound_tokens(item["content"])
-                    tokenized_body += [self.sound_end_id]
+                    tokenized_body += self.encode(
+                        item["content"].strip(), add_bos=False, add_eos=False
+                    )
                 elif text_part in transcribe_prompt:
                     text_id = self.encode(text_part.strip(), add_bos=False, add_eos=False)
                     sound_part = "<|sound_start|>"+item["content"].split("<|sound_start|>")[1] 
