@@ -64,7 +64,7 @@ def llama3_2_s_compress_1b() -> TransformerDecoder:
         TransformerDecoder: Instantiation of Llama3.2 1B model
     """
     return llama3_2(
-        vocab_size=130_355,
+        vocab_size=130_867,
         num_layers=16,
         num_heads=32,
         num_kv_heads=8,

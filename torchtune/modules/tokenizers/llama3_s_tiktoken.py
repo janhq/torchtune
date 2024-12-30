@@ -4,8 +4,8 @@ from typing import Dict, Iterator, List
 from tiktoken import Encoding
 from tiktoken.load import load_tiktoken_bpe
 
-sound_tokens = [f'<|sound_{num:04d}|>' for num in range(513)]
-duration_tokens = [f'<|duration_{num:02d}|>' for num in range(2,100)]
+sound_tokens = [f'<|sound_{num:04d}|>' for num in range(2561)]
+duration_tokens = [f'<|duration_{num:02d}|>' for num in range(2,50)]
 class CustomTikTokenTokenizer(TikTokenBaseTokenizer):
     def __init__(
         self,
