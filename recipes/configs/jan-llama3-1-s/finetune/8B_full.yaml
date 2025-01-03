@@ -20,7 +20,7 @@
 tokenizer:
   _component_: torchtune.models.llama3.llama3_s_tokenizer
   path: ../model_zoo/tokenizer.model
-  max_seq_len: 4096
+  max_seq_len: 2048
 
 # Dataset
 dataset:
@@ -34,10 +34,10 @@ dataset:
 # Model Arguments
 model:
   _component_: torchtune.models.llama3_1.llama3_1_s_8b
-  # path: model_zoo/Llama3.1_s_8b_init
+  # path: ichigov0.5_model_zoo/Llama3.1_s_8b_init
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointerSaveSteps
-  checkpoint_dir: ../model_zoo/llama3.1-s-base
+  checkpoint_dir: ../model_zoo/ichigo-v0.5-8B-base
   checkpoint_files:
     [
       model-00001-of-00004.safetensors,
@@ -46,7 +46,7 @@ checkpointer:
       model-00004-of-00004.safetensors,
     ]
   recipe_checkpoint: null
-  output_dir: ../model_zoo/llama3-1-s-instruct
+  output_dir: ../model_zoo/ichigo-v0.5-8B-instruct
   model_type: LLAMA3
 
 seed: 42
@@ -55,20 +55,21 @@ resume_from_checkpoint: False
 save_every_n_steps: 1000
 max_checkpoints: 3
 # Fine-tuning arguments
-batch_size: 6
+batch_size: 8
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 4
 compile: True
+gradient_clipping: 1.0
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW #change this to use adam_mini: torchtune.modules.optimizer.Adam_mini
-  weight_decay: 0.005
-  lr: 7e-5
+  weight_decay: 0.05
+  lr: 2e-4
   fused: True
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: 73
+  num_warmup_steps: 100
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
@@ -76,9 +77,8 @@ loss:
 fsdp:
   cpu_offload: False
 
-
 # Logging
-output_dir: ../model_zoo/Llama3-s-instruct-log/
+output_dir: ../model_zoo/ichigo-v0.5-8B-instruct/
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
@@ -90,7 +90,6 @@ device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
-ac_mode: "selective"
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
