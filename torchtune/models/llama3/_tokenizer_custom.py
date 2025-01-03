@@ -25,6 +25,14 @@ transcribe_prompt = [
     "Generate a transcript from this sound file: ",
     "Recognize the speech in this audio clip: ",
     "Produce a text version of this audio recording: ",
+    "Yêu cầu chuyển đổi nội dung đoạn âm thanh này sang dạng văn bản.",
+    "Đề nghị ghi lại chính xác nội dung được phát trong đoạn âm thanh sau.",
+    "Vui lòng cho biết nội dung của đoạn ghi âm này dưới dạng văn bản.",
+    "Hãy tiến hành chuyển đổi giọng nói trong tệp âm thanh này thành văn bản chi tiết.",
+    "Xác định và ghi lại nội dung của đoạn âm thanh đính kèm.",
+    "Cần bản ghi chép đầy đủ nội dung từ tệp âm thanh này.",
+    "Chuyển nội dung âm thanh sau đây thành văn bản một cách chính xác nhất.",
+    "Thực hiện ghi chép lại nội dung của đoạn âm thanh, đảm bảo tính chính xác và đầy đủ.",
 ]
 class Llama3STokenizer(Llama3Tokenizer):
     @override
