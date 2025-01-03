@@ -25,7 +25,7 @@ def llama3_1_s_8b() -> TransformerDecoder:
         TransformerDecoder: Instantiation of Llama3.1 8B model
     """
     return llama3_1(
-        vocab_size=128_771,
+        vocab_size=130_867,
         num_layers=32,
         num_heads=32,
         num_kv_heads=8,
