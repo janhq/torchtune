@@ -335,7 +335,7 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         # self.global_step = self.epochs_run * self._steps_per_epoch
-        self.global_step = ckpt_dict[training.STEPS_KEY] if self._resume_from_checkpoint else 0
+        self.global_step = checkpoint_dict[training.STEPS_KEY] if self._resume_from_checkpoint else 0
         self.local_step = self.global_step % self._steps_per_epoch if self._resume_from_checkpoint else 0
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(

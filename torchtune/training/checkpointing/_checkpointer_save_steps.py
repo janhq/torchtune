@@ -89,7 +89,7 @@ class FullModelHFCheckpointerSaveSteps(FullModelHFCheckpointer):
                 raise ValueError(
                     "If resume_from_checkpoint is True, recipe_checkpoint file must be provided."
                 )
-            checkpoints = [d for d in os.listdir(output_dir) if d.startswith("checkpoint_step_")]
+            checkpoints = [d for d in os.listdir(checkpoint_dir) if d.startswith("checkpoint_step_")]
             if not checkpoints:
                 raise ValueError(
                     "No checkpoint files found in the output directory. Cannot resume training."
@@ -97,9 +97,9 @@ class FullModelHFCheckpointerSaveSteps(FullModelHFCheckpointer):
             latest_checkpoint = max(checkpoints, key=lambda x: int(x.split("_")[-1]))
             if self._is_rank_zero:
                 log.info(f"Resuming training from latest checkpoint: {latest_checkpoint}")
-            recipe_checkpoint_path = os.path.join(output_dir, latest_checkpoint)    
+            recipe_checkpoint_path = os.path.join(checkpoint_dir, latest_checkpoint)    
             self._recipe_checkpoint = Path(os.path.join(recipe_checkpoint_path, recipe_checkpoint))
-            # update checkpoint_dir = output_dir+latest_checkpoint
+            # update checkpoint_dir = checkpoint_dir+latest_checkpoint
             self._checkpoint_dir = Path(recipe_checkpoint_path)
         # Validate the checkpoint files
         self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
