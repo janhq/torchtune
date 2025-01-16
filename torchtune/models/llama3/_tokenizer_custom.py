@@ -17,14 +17,14 @@ SPECIAL_SOUND_TOKENS = {
 
 LLAMA3_S_SPECIAL_TOKENS = {**LLAMA3_SPECIAL_TOKENS, **SPECIAL_SOUND_TOKENS}
 transcribe_prompt = [
-    "Transcribe the following audio clip: ",
-    "Convert the spoken words to text: ",
-    "What is being said in this audio clip: ",
+    "Transcribe the following audio clip:",
+    "Convert the spoken words to text:",
+    "What is being said in this audio clip:",
     "Transcribe the speech in this audio sample:",
     "Please write down what is being said in the audio clip:",
-    "Generate a transcript from this sound file: ",
-    "Recognize the speech in this audio clip: ",
-    "Produce a text version of this audio recording: ",
+    "Generate a transcript from this sound file:",
+    "Recognize the speech in this audio clip:",
+    "Produce a text version of this audio recording:",
     "Yêu cầu chuyển đổi nội dung đoạn âm thanh này sang dạng văn bản.",
     "Đề nghị ghi lại chính xác nội dung được phát trong đoạn âm thanh sau.",
     "Vui lòng cho biết nội dung của đoạn ghi âm này dưới dạng văn bản.",
@@ -87,7 +87,7 @@ class Llama3STokenizer(Llama3Tokenizer):
         tokenized_body = []
         for item in message.content:
             if item["type"] == "text":
-                text_part = item["content"].split("<|sound_start|>")[0]
+                text_part = item["content"].split("<|sound_start|>")[0].strip()
                 if "<|reserved_special_token_69|>" in item["content"]:
                     prefix = "<|reserved_special_token_69|>"
                     item["content"] = item["content"][len(prefix):]
