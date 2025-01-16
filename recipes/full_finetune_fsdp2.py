@@ -869,6 +869,12 @@ class FullFinetuneRecipeFSDP2(FTRecipeInterface):
             )
             start_batch = self.global_step % len(self._dataloader) if self._resume_from_checkpoint else 0
             for idx, batch in itertools.islice(enumerate(self._dataloader), start_batch, None):
+                
+                if 5950 <= self.global_step <= 5980:
+                    self.global_step += 1
+                    continue
+
+                
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
