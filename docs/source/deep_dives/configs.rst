@@ -89,8 +89,8 @@ this by taking a look at the :func:`~torchtune.config.instantiate` API.
 
     def instantiate(
         config: DictConfig,
-        *args: Tuple[Any, ...],
-        **kwargs: Dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
     )
 
 :func:`~torchtune.config.instantiate` also accepts positional arguments
@@ -119,7 +119,7 @@ keyword arguments not specified in the config if we'd like:
         tokenizer: ModelTokenizer,
         train_on_input: bool = True,
         max_seq_len: int = 512,
-    ) -> InstructDataset:
+    ) -> SFTDataset:
 
     from torchtune import config
 

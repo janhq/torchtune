@@ -32,7 +32,6 @@ class TestLoRADPOSingleDeviceRecipe:
             "batch_size=8",
             "device=cpu",
             f"dtype={dtype_str}",
-            "enable_activation_checkpointing=False",
             "dataset.train_on_input=False",
             "seed=9",
             f"epochs={epochs}",
@@ -74,6 +73,8 @@ class TestLoRADPOSingleDeviceRecipe:
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -83,6 +84,8 @@ class TestLoRADPOSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
             metric_logger.filename={log_file} \
+            enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -101,6 +104,8 @@ class TestLoRADPOSingleDeviceRecipe:
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -112,6 +117,8 @@ class TestLoRADPOSingleDeviceRecipe:
             metric_logger.filename={resumed_log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
@@ -135,6 +142,8 @@ class TestLoRADPOSingleDeviceRecipe:
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -142,6 +151,8 @@ class TestLoRADPOSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            enable_activation_checkpointing=False \
+            enable_activation_offloading=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
